@@ -1,0 +1,6 @@
+{
+  "name": "إكسيلو-Xcelo",
+  "description": "قم برفع ملف إكسيل لعرض محتواه والبحث فيه.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
