@@ -8,7 +8,7 @@ import {
   Activity, LayoutGrid, TrendingUp, Gamepad2, ArrowRight, Trash2, Info,
   ChevronDown, Undo2, PaintBucket, Type, Combine, X, Eraser, Grid3X3, Columns, Rows, Image as ImageIcon,
   Shapes, Circle, Square, Triangle, ArrowLeft, ArrowUp, ArrowDown, Star,
-  Bold, AlignLeft, AlignCenter, AlignRight, Plus, Minus, ZoomIn, ZoomOut, ChevronUp, Split
+  Bold, AlignLeft, AlignCenter, AlignRight, Plus, Minus, ZoomIn, ZoomOut, ChevronUp, Split, Eye, EyeOff, Edit2, Check
 } from 'lucide-react';
 
 interface ActiveSheetData {
@@ -43,13 +43,71 @@ const PALETTE = [
 ];
 
 function App() {
+  // Authentication states
+  const [user, setUser] = useState<{username: string, role: string, complex?: string} | null>(null);
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+
+  const COMPLEXES_LIST = [
+    'دار القلم', 'رائدة السلام', 'رحاب المعرفة', 'أضواء الرياض النهضة',
+    'أضواء الرياض القادسية', 'المدينة الأكاديمية', 'أسراري', 'السفراء',
+    'دار البرائة', 'أجيال ينبع', 'نبع المعرفة', 'منارات ينبع',
+    'دار الثقافة', 'نبع المواهب', 'العزيزية بالخبر'
+  ];
+
+  const COMPLEX_LOGOS: Record<string, string> = {
+    'كل المجمعات': '/1000099843-removebg-preview.png',
+    'دار القلم': '/1000099845-removebg-preview.png',
+    'رحاب المعرفة': '/1000106495-removebg-preview.png',
+    'أسراري': '/1000106498-removebg-preview.png',
+    'السفراء': '/1000106499-removebg-preview.png',
+    'المدينة الأكاديمية': '/1000106500-removebg-preview.png',
+    'دار البرائة': '/1000106501-removebg-preview.png',
+    'أضواء الرياض النهضة': '/1000106502-removebg-preview.png',
+    'أضواء الرياض القادسية': '/1000106502-removebg-preview.png',
+    'رائدة السلام': '/1000106503-removebg-preview.png',
+    'نبع المعرفة': '/1000106504-removebg-preview.png',
+    'منارات ينبع': '/1000106505-removebg-preview.png',
+    'أجيال ينبع': '/1000106506-removebg-preview.png',
+    'دار الثقافة': '/1000106507-removebg-preview.png',
+    'نبع المواهب': '/1000106508-removebg-preview.png',
+    'العزيزية بالخبر': '/1000106509-removebg-preview.png'
+  };
+
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'users'>('profile');
+  const [editUsername, setEditUsername] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [addUsername, setAddUsername] = useState('');
+  const [addPassword, setAddPassword] = useState('');
+  const [addComplex, setAddComplex] = useState(COMPLEXES_LIST[0]);
+  const [settingsMessage, setSettingsMessage] = useState({ type: '', text: '' });
+
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  const [editingUsername, setEditingUsername] = useState<string | null>(null);
+  const [editUserForm, setEditUserForm] = useState({ username: '', password: '', complex: '' });
+
   // حالات تخزين اختيارات المستخدم
   const [academicYear, setAcademicYear] = useState('2026/2027');
   const [complexName, setComplexName] = useState('كل المجمعات');
+  const [pathName, setPathName] = useState('أهلي');
   const [dataStatus, setDataStatus] = useState('الكل');
   
+  // حالة اختيار الفئة (بيانات أو تقارير)
+  const [selectedCategory, setSelectedCategory] = useState<'بيانات' | 'تقارير' | null>('بيانات');
+  
   // حالة تخزين البيانات بعد الضغط على حفظ لعرضها
-  const [savedData, setSavedData] = useState<{ complex: string; year: string } | null>(null);
+  const [savedData, setSavedData] = useState<{ complex: string; year: string; path: string } | null>(null);
+
+  useEffect(() => {
+    if (user && user.role !== 'admin' && user.complex) {
+      setComplexName(user.complex);
+    }
+  }, [user]);
 
   // حالة عرض جدول الإكسيل
   const [activeSheet, setActiveSheet] = useState<ActiveSheetData | null>(null);
@@ -602,7 +660,7 @@ function App() {
     
     const newColors = { ...activeSheet.colors };
     let isBold = false;
-    const firstKey = Array.from(selectedCells)[0];
+    const firstKey = Array.from(selectedCells)[0] as string;
     if (newColors[firstKey]?.bold) isBold = true;
 
     selectedCells.forEach(key => {
@@ -735,7 +793,8 @@ function App() {
   const handleSave = () => {
     setSavedData({
       complex: complexName,
-      year: academicYear
+      year: academicYear,
+      path: pathName
     });
   };
 
@@ -1154,20 +1213,466 @@ function App() {
     );
   };
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setLoginError('');
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: loginUsername, password: loginPassword })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUser({ username: data.username, role: data.role, complex: data.complex });
+      } else {
+        setLoginError(data.error || 'خطأ في تسجيل الدخول');
+      }
+    } catch (err) {
+      setLoginError('تعذر الاتصال بالخادم');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleChangeCredentials = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsMessage({ type: '', text: '' });
+    try {
+      const res = await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          oldUsername: user?.username, 
+          newUsername: editUsername, 
+          newPassword: editPassword 
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSettingsMessage({ type: 'success', text: 'تم تحديث بياناتك بنجاح' });
+        if (editUsername) {
+          setUser({ ...user!, username: editUsername });
+        }
+        setEditUsername('');
+        setEditPassword('');
+      } else {
+        setSettingsMessage({ type: 'error', text: data.error || 'حدث خطأ' });
+      }
+    } catch (err) {
+      setSettingsMessage({ type: 'error', text: 'تعذر الاتصال بالخادم' });
+    }
+  };
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsMessage({ type: '', text: '' });
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          username: addUsername, 
+          password: addPassword,
+          role: 'user',
+          complex: addComplex
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSettingsMessage({ type: 'success', text: 'تم إضافة المستخدم بنجاح' });
+        setAddUsername('');
+        setAddPassword('');
+        setAddComplex(COMPLEXES_LIST[0]);
+        fetchUsers();
+      } else {
+        setSettingsMessage({ type: 'error', text: data.error || 'حدث خطأ' });
+      }
+    } catch (err) {
+      setSettingsMessage({ type: 'error', text: 'تعذر الاتصال بالخادم' });
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/users');
+      const data = await res.json();
+      setAllUsers(data);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (showSettings && settingsTab === 'users' && user?.role === 'admin') {
+      fetchUsers();
+    }
+  }, [showSettings, settingsTab, user]);
+
+  const handleDeleteUser = async (username: string) => {
+    if (!window.confirm(`هل أنت متأكد من حذف المستخدم "${username}"؟`)) return;
+    try {
+      const res = await fetch(`/api/users/${username}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        fetchUsers();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'حدث خطأ أثناء الحذف');
+      }
+    } catch (err) {
+      alert('تعذر الاتصال بالخادم');
+    }
+  };
+
+  const handleSaveEditUser = async (oldUsername: string) => {
+    try {
+      const res = await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          oldUsername, 
+          newUsername: editUserForm.username, 
+          newPassword: editUserForm.password,
+          newComplex: editUserForm.complex
+        })
+      });
+      if (res.ok) {
+        setEditingUsername(null);
+        fetchUsers();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'حدث خطأ');
+      }
+    } catch (err) {
+      alert('تعذر الاتصال بالخادم');
+    }
+  };
+
+  const togglePasswordVisibility = (username: string) => {
+    const newSet = new Set(visiblePasswords);
+    if (newSet.has(username)) {
+      newSet.delete(username);
+    } else {
+      newSet.add(username);
+    }
+    setVisiblePasswords(newSet);
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4 font-sans dir-rtl text-right" dir="rtl">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white p-8 sm:p-10 rounded-[2rem] shadow-xl w-full max-w-md border border-slate-100 flex flex-col items-center relative overflow-hidden"
+        >
+          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-500 to-emerald-400"></div>
+          
+          <img src="/1000099843-removebg-preview.png" alt="التنمية المتكاملة" className="h-32 object-contain mb-8 drop-shadow-sm" />
+          <h1 className="text-2xl font-bold text-slate-800 mb-6 text-center">تسجيل الدخول للنظام</h1>
+          
+          {loginError && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-xl w-full mb-6 text-sm border border-red-100 font-medium text-center">
+              {loginError}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="w-full flex flex-col gap-5">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">اسم المستخدم</label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  value={loginUsername}
+                  onChange={e => setLoginUsername(e.target.value)}
+                  className="w-full pl-4 pr-12 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-all text-slate-800 font-medium"
+                  placeholder="أدخل اسم المستخدم"
+                  required
+                />
+                <UserSquare2 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">كلمة المرور</label>
+              <div className="relative">
+                <input 
+                  type={showLoginPassword ? "text" : "password"} 
+                  value={loginPassword}
+                  onChange={e => setLoginPassword(e.target.value)}
+                  className="w-full pl-12 pr-12 py-3.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-all text-slate-800 font-medium"
+                  placeholder="أدخل كلمة المرور"
+                  required
+                />
+                <Briefcase className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <button 
+                  type="button"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                >
+                  {showLoginPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={isLoggingIn}
+              className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg active:scale-[0.98] transition-all disabled:opacity-70 flex items-center justify-center gap-2"
+            >
+              {isLoggingIn ? 'جاري التحقق...' : (
+                <>
+                  دخول للنظام
+                  <ArrowLeft size={20} />
+                </>
+              )}
+            </button>
+          </form>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-blue-50/50 text-slate-800 font-sans p-3 sm:p-6 md:p-12" dir="rtl">
+      {/* لوحة الإعدادات */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <UserCog size={20} className="text-blue-600" />
+                إعدادات النظام
+              </h2>
+              <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="flex border-b">
+              <button 
+                onClick={() => setSettingsTab('profile')}
+                className={`flex-1 py-3 text-sm font-bold border-b-2 transition-all ${settingsTab === 'profile' ? 'border-blue-500 text-blue-600 bg-blue-50/50' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}
+              >
+                تغيير بياناتي
+              </button>
+              {user.role === 'admin' && (
+                <button 
+                  onClick={() => setSettingsTab('users')}
+                  className={`flex-1 py-3 text-sm font-bold border-b-2 transition-all ${settingsTab === 'users' ? 'border-blue-500 text-blue-600 bg-blue-50/50' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}
+                >
+                  إضافة مستخدم جديد
+                </button>
+              )}
+            </div>
+
+            <div className="p-6">
+              {settingsMessage.text && (
+                <div className={`p-3 rounded-lg mb-4 text-sm font-bold text-center ${settingsMessage.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
+                  {settingsMessage.text}
+                </div>
+              )}
+
+              {settingsTab === 'profile' && (
+                <form onSubmit={handleChangeCredentials} className="flex flex-col gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">اسم المستخدم الجديد</label>
+                    <input 
+                      type="text" 
+                      value={editUsername}
+                      onChange={e => setEditUsername(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-all text-slate-800"
+                      placeholder="اتركه فارغاً إذا لم ترغب بتغييره"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">كلمة المرور الجديدة</label>
+                    <input 
+                      type="password" 
+                      value={editPassword}
+                      onChange={e => setEditPassword(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-all text-slate-800"
+                      placeholder="اتركه فارغاً إذا لم ترغب بتغييرها"
+                    />
+                  </div>
+                  <button type="submit" className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-md active:scale-[0.98]">
+                    حفظ التعديلات
+                  </button>
+                </form>
+              )}
+
+              {settingsTab === 'users' && user.role === 'admin' && (
+                <div className="flex flex-col gap-6">
+                  <form onSubmit={handleAddUser} className="flex flex-col gap-4">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1">اسم المستخدم</label>
+                      <input 
+                        type="text" 
+                        value={addUsername}
+                        onChange={e => setAddUsername(e.target.value)}
+                        className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-all text-slate-800"
+                        placeholder="أدخل اسم المستخدم"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1">كلمة المرور</label>
+                      <input 
+                        type="password" 
+                        value={addPassword}
+                        onChange={e => setAddPassword(e.target.value)}
+                        className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-all text-slate-800"
+                        placeholder="أدخل كلمة المرور"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1">المجمع التابع له</label>
+                      <select 
+                        value={addComplex}
+                        onChange={e => setAddComplex(e.target.value)}
+                        className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-all text-slate-800"
+                      >
+                        {COMPLEXES_LIST.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <button type="submit" className="mt-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-all shadow-md active:scale-[0.98]">
+                      إضافة المستخدم
+                    </button>
+                  </form>
+
+                  <hr className="border-slate-200" />
+
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                      <Users size={18} className="text-blue-600" />
+                      قائمة المستخدمين
+                    </h3>
+                    <div className="flex flex-col gap-3 max-h-60 overflow-y-auto pr-2">
+                      {allUsers.map(u => (
+                        <div key={u.username} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                          {editingUsername === u.username ? (
+                            <div className="flex-1 flex gap-2">
+                              <input 
+                                value={editUserForm.username} 
+                                onChange={e => setEditUserForm({ ...editUserForm, username: e.target.value })} 
+                                className="flex-1 p-2 rounded-lg border border-slate-300 text-sm" 
+                                placeholder="الاسم" 
+                              />
+                              <input 
+                                value={editUserForm.password} 
+                                onChange={e => setEditUserForm({ ...editUserForm, password: e.target.value })} 
+                                className="flex-1 p-2 rounded-lg border border-slate-300 text-sm" 
+                                placeholder="كلمة المرور" 
+                              />
+                              <select
+                                value={editUserForm.complex}
+                                onChange={e => setEditUserForm({ ...editUserForm, complex: e.target.value })}
+                                className="flex-1 p-2 rounded-lg border border-slate-300 text-sm"
+                              >
+                                {COMPLEXES_LIST.map(c => <option key={c} value={c}>{c}</option>)}
+                              </select>
+                              <button onClick={() => handleSaveEditUser(u.username)} className="p-2 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200">
+                                <Check size={16}/>
+                              </button>
+                              <button onClick={() => setEditingUsername(null)} className="p-2 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300">
+                                <X size={16}/>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex-1 flex items-center justify-between">
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-slate-700">{u.username}</span>
+                                  {u.role === 'admin' && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">أدمن</span>}
+                                  {u.complex && <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">{u.complex}</span>}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-sm font-mono bg-slate-200 px-2 py-0.5 rounded text-slate-600 tracking-wider">
+                                    {visiblePasswords.has(u.username) ? u.password : '••••••••'}
+                                  </span>
+                                  <button onClick={() => togglePasswordVisibility(u.username)} className="text-slate-400 hover:text-slate-600">
+                                    {visiblePasswords.has(u.username) ? <EyeOff size={14}/> : <Eye size={14}/>}
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button 
+                                  onClick={() => { 
+                                    setEditingUsername(u.username); 
+                                    setEditUserForm({username: u.username, password: u.password, complex: u.complex || COMPLEXES_LIST[0]}); 
+                                  }} 
+                                  className="p-1.5 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
+                                  title="تعديل"
+                                >
+                                  <Edit2 size={16}/>
+                                </button>
+                                {u.username !== user.username && (
+                                  <button 
+                                    onClick={() => handleDeleteUser(u.username)} 
+                                    className="p-1.5 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
+                                    title="حذف"
+                                  >
+                                    <Trash2 size={16}/>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {allUsers.length === 0 && (
+                        <div className="text-center text-slate-500 py-4 text-sm font-medium">
+                          لا يوجد مستخدمين آخرين
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 flex-1 w-full flex flex-col">
         
         {/* الترويسة والشعارات */}
         <header className="relative w-full flex flex-col gap-4 md:gap-6">
-          <div className="bg-white border-2 border-blue-500 rounded-2xl md:rounded-3xl px-2 sm:px-6 md:px-10 py-2 shadow-md shadow-blue-900/5 w-full flex flex-row justify-between items-center gap-2 md:gap-6 overflow-hidden">
-            <div className="flex justify-start shrink min-w-0">
-              <img src="/1000099843-removebg-preview.png" alt="التنمية المتكاملة" className="h-10 sm:h-20 md:h-32 lg:h-48 xl:h-[22rem] w-auto object-contain flex-shrink-0 -my-2 sm:-my-4 md:-my-6" />
+          <div className="w-full flex justify-end">
+            <button 
+              onClick={() => setShowSettings(true)}
+              className="bg-white border border-blue-200 hover:bg-blue-50 text-blue-700 px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-sm"
+            >
+              <UserCog size={18} />
+              الإعدادات
+            </button>
+            <button 
+              onClick={() => setUser(null)}
+              className="bg-white border border-red-200 hover:bg-red-50 text-red-600 px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-sm mr-2"
+            >
+              تسجيل الخروج
+            </button>
+          </div>
+          <div className="bg-white border-2 border-blue-500 rounded-2xl md:rounded-3xl px-2 sm:px-6 md:px-10 py-2 shadow-md shadow-blue-900/5 w-full flex flex-row justify-center items-center overflow-hidden relative">
+            <div className="flex justify-center items-center min-w-0">
+              {user.role === 'admin' ? (
+                <img src="/1000099843-removebg-preview.png" alt="التنمية المتكاملة" className="h-16 sm:h-24 md:h-36 lg:h-48 xl:h-[22rem] w-auto object-contain flex-shrink-0 -my-2 sm:-my-4 md:-my-6" />
+              ) : (
+                <img src={COMPLEX_LOGOS[user.complex || ''] || '/1000099845-removebg-preview.png'} alt={user.complex} className="h-16 sm:h-24 md:h-36 lg:h-48 xl:h-[22rem] w-auto object-contain flex-shrink-0 -my-2 sm:-my-4 md:-my-6" />
+              )}
             </div>
-            <div className="flex-1 shrink-0 z-10 px-1 md:px-4"></div>
-            <div className="flex justify-end shrink min-w-0">
-              <img src="/1000099845-removebg-preview.png" alt="مدارس دار القلم" className="h-10 sm:h-20 md:h-32 lg:h-48 xl:h-[22rem] w-auto object-contain flex-shrink-0 -my-2 sm:-my-4 md:-my-6" />
-            </div>
+            
+            {/* Read-Only Badge */}
+            {user.role === 'admin' && (
+              <div className="absolute top-4 right-4 bg-orange-100 border border-orange-300 text-orange-800 px-2 sm:px-4 py-2 rounded-xl font-bold shadow-sm flex items-center gap-2 text-xs sm:text-sm">
+                <Eye size={16} />
+                <span>تقارير فقط</span>
+              </div>
+            )}
           </div>
         </header>
 
@@ -1195,6 +1700,27 @@ function App() {
               </select>
             </div>
 
+            {/* المسار */}
+            <div className="flex-1 w-full">
+              <label className="flex items-center gap-2 text-sm font-bold text-blue-900 mb-2">
+                <GraduationCap size={16} className="text-blue-500" />
+                المسار
+              </label>
+              <select 
+                value={pathName}
+                onChange={(e) => setPathName(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all cursor-pointer text-slate-700"
+              >
+                <option value="أهلي">أهلي</option>
+                <option value="دولي">دولي</option>
+                <option value="دبلومة أمريكية">دبلومة أمريكية</option>
+                <option value="نون">نون</option>
+                <option value="مصري">مصري</option>
+                <option value="تربية خاصة">تربية خاصة</option>
+                <option value="فرنسي">فرنسي</option>
+              </select>
+            </div>
+
             {/* اختيار اسم المجمع */}
             <div className="flex-1 w-full">
               <label className="flex items-center gap-2 text-sm font-bold text-blue-900 mb-2">
@@ -1204,12 +1730,11 @@ function App() {
               <select 
                 value={complexName}
                 onChange={(e) => setComplexName(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all cursor-pointer text-slate-700"
+                disabled={user.role !== 'admin'}
+                className={`w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-700 ${user.role !== 'admin' ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
               >
-                <option value="كل المجمعات">كل المجمعات</option>
-                <option value="دار القلم">دار القلم</option>
-                <option value="رائدة السلام">رائدة السلام</option>
-                <option value="المدينة الاكاديمية">المدينة الاكاديمية</option>
+                {user.role === 'admin' && <option value="كل المجمعات">كل المجمعات</option>}
+                {COMPLEXES_LIST.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
 
@@ -1248,7 +1773,7 @@ function App() {
                       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
                       
                       // استبدال الشيتات المعدلة في الملف الأصلي
-                      Object.entries(modifiedSheets).forEach(([title, sheetData]) => {
+                      Object.entries(modifiedSheets).forEach(([title, sheetData]: [string, any]) => {
                         // تحديد اسم الشيت الأصلي
                         const allCards = [...whiteCards, ...blueCards, 
                           { name: 'المقاعد الشاغرة', sheetName: 'شواغر دار القلم' },
@@ -1301,25 +1826,29 @@ function App() {
               
               {/* البيانات المختارة (فوق البطاقات) */}
               <motion.div variants={itemVariants} className="w-full flex flex-col items-center justify-center bg-white rounded-2xl shadow-sm border border-blue-100 p-8 mb-8">
-                {savedData.complex === 'كل المجمعات' && (
+                {savedData.complex === 'كل المجمعات' ? (
                   <img 
                     src="/1000099843-removebg-preview.png" 
                     alt="التنمية المتكاملة" 
                     className="h-28 md:h-44 w-auto object-contain mb-6 drop-shadow-sm" 
                   />
-                )}
-                {savedData.complex === 'دار القلم' && (
+                ) : (
                   <img 
-                    src="/1000099845-removebg-preview.png" 
-                    alt="مدارس دار القلم" 
+                    src={COMPLEX_LOGOS[savedData.complex] || '/1000099845-removebg-preview.png'} 
+                    alt={savedData.complex} 
                     className="h-28 md:h-44 w-auto object-contain mb-6 drop-shadow-sm" 
                   />
                 )}
                 <h2 className="text-3xl md:text-5xl font-extrabold text-blue-950 mb-4 text-center">
                   {savedData.complex}
                 </h2>
-                <div className="inline-flex items-center justify-center bg-blue-100 text-blue-800 px-6 py-2 rounded-full text-lg md:text-xl font-bold shadow-sm border border-blue-200">
-                  العام الدراسي: {savedData.year}
+                <div className="flex flex-wrap gap-4 items-center justify-center">
+                  <div className="inline-flex items-center justify-center bg-blue-100 text-blue-800 px-6 py-2 rounded-full text-lg md:text-xl font-bold shadow-sm border border-blue-200">
+                    العام الدراسي: {savedData.year}
+                  </div>
+                  <div className="inline-flex items-center justify-center bg-emerald-100 text-emerald-800 px-6 py-2 rounded-full text-lg md:text-xl font-bold shadow-sm border border-emerald-200">
+                    المسار: {savedData.path}
+                  </div>
                 </div>
               </motion.div>
 
@@ -1358,51 +1887,88 @@ function App() {
                     </motion.button>
                   </div>
 
+                  {/* أزرار اختيار الفئة (بيانات أو تقارير) */}
+                  <div className="flex flex-row justify-center gap-4 md:gap-6 mb-8 w-full max-w-2xl mx-auto">
+                    <button
+                      onClick={() => setSelectedCategory('بيانات')}
+                      className={`flex-1 py-4 md:py-6 rounded-2xl font-bold text-xl md:text-2xl shadow-md transition-all duration-300 flex flex-col items-center justify-center gap-3 ${
+                        selectedCategory === 'بيانات'
+                          ? 'bg-blue-600 text-white border-2 border-blue-700 scale-105 shadow-lg'
+                          : 'bg-white text-blue-700 border-2 border-slate-200 hover:bg-blue-50 hover:-translate-y-1'
+                      }`}
+                    >
+                      <LayoutGrid size={36} className={selectedCategory === 'بيانات' ? 'animate-bounce' : ''} />
+                      بيانات
+                    </button>
+                    <button
+                      onClick={() => setSelectedCategory('تقارير')}
+                      className={`flex-1 py-4 md:py-6 rounded-2xl font-bold text-xl md:text-2xl shadow-md transition-all duration-300 flex flex-col items-center justify-center gap-3 ${
+                        selectedCategory === 'تقارير'
+                          ? 'bg-blue-600 text-white border-2 border-blue-700 scale-105 shadow-lg'
+                          : 'bg-white text-blue-700 border-2 border-slate-200 hover:bg-blue-50 hover:-translate-y-1'
+                      }`}
+                    >
+                      <PieChart size={36} className={selectedCategory === 'تقارير' ? 'animate-bounce' : ''} />
+                      تقارير
+                    </button>
+                  </div>
+
                   {/* القوائم المربعة - أفقية (البيضاء فوق والزرقاء تحت) */}
                   <div className="flex flex-col gap-6 md:gap-8 w-full mb-12">
                     
                     {/* صف البطاقات البيضاء */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4 lg:gap-5 w-full">
-                      {whiteCards.map((card, idx) => (
-                        <motion.button 
-                          onClick={() => loadSheetData(card.name, card.sheetName)}
-                          variants={itemVariants}
-                          key={idx}
-                          className="flex flex-col items-center justify-center gap-2 lg:gap-3 p-2 lg:p-4 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 hover:-translate-y-1 transition-all duration-300 group aspect-square text-center w-full"
-                        >
-                          <div className="p-2 lg:p-3 bg-blue-50 text-blue-600 rounded-xl lg:rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
-                            <card.icon className="w-7 h-7 lg:w-9 lg:h-9 opacity-90" />
-                          </div>
-                          <span className="text-xs lg:text-sm font-bold text-slate-700 leading-snug group-hover:text-blue-700 px-1">
-                            {card.name}
-                          </span>
-                        </motion.button>
-                      ))}
-                    </div>
+                    {selectedCategory === 'بيانات' && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4 lg:gap-5 w-full"
+                      >
+                        {whiteCards.map((card, idx) => (
+                          <motion.button 
+                            onClick={() => loadSheetData(card.name, card.sheetName)}
+                            variants={itemVariants}
+                            key={idx}
+                            className="flex flex-col items-center justify-center gap-2 lg:gap-3 p-2 lg:p-4 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 hover:-translate-y-1 transition-all duration-300 group aspect-square text-center w-full"
+                          >
+                            <div className="p-2 lg:p-3 bg-blue-50 text-blue-600 rounded-xl lg:rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
+                              <card.icon className="w-7 h-7 lg:w-9 lg:h-9 opacity-90" />
+                            </div>
+                            <span className="text-xs lg:text-sm font-bold text-slate-700 leading-snug group-hover:text-blue-700 px-1">
+                              {card.name}
+                            </span>
+                          </motion.button>
+                        ))}
+                      </motion.div>
+                    )}
 
                     {/* صف البطاقات الزرقاء */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4 lg:gap-5 w-full">
-                      {blueCards.map((card, idx) => (
-                        <motion.button 
-                          onClick={() => loadSheetData(card.name, card.sheetName)}
-                          variants={itemVariants}
-                          key={idx}
-                          className="flex flex-col items-center justify-center gap-2 lg:gap-3 p-2 lg:p-4 bg-blue-600 rounded-2xl border border-blue-700 shadow-sm hover:shadow-md hover:bg-blue-700 hover:border-blue-800 hover:-translate-y-1 transition-all duration-300 group aspect-square text-center w-full"
-                        >
-                          <div className="p-2 lg:p-3 bg-blue-500/50 text-white rounded-xl lg:rounded-2xl group-hover:bg-white group-hover:text-blue-700 transition-colors duration-300">
-                            <card.icon className="w-7 h-7 lg:w-9 lg:h-9 opacity-100" />
-                          </div>
-                          <span className="text-xs lg:text-sm font-bold text-white leading-snug px-1">
-                            {card.name}
-                          </span>
-                        </motion.button>
-                      ))}
-                    </div>
-
+                    {selectedCategory === 'تقارير' && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4 lg:gap-5 w-full"
+                      >
+                        {blueCards.map((card, idx) => (
+                          <motion.button 
+                            onClick={() => loadSheetData(card.name, card.sheetName)}
+                            variants={itemVariants}
+                            key={idx}
+                            className="flex flex-col items-center justify-center gap-2 lg:gap-3 p-2 lg:p-4 bg-blue-600 rounded-2xl border border-blue-700 shadow-sm hover:shadow-md hover:bg-blue-700 hover:border-blue-800 hover:-translate-y-1 transition-all duration-300 group aspect-square text-center w-full"
+                          >
+                            <div className="p-2 lg:p-3 bg-blue-500/50 text-white rounded-xl lg:rounded-2xl group-hover:bg-white group-hover:text-blue-700 transition-colors duration-300">
+                              <card.icon className="w-7 h-7 lg:w-9 lg:h-9 opacity-100" />
+                            </div>
+                            <span className="text-xs lg:text-sm font-bold text-white leading-snug px-1">
+                              {card.name}
+                            </span>
+                          </motion.button>
+                        ))}
+                      </motion.div>
+                    )}
                   </div>
 
                   {/* المربعات الأربعة السفلية */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl mx-auto">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl mx-auto mt-4">
                     {/* المجموعة الأولى (برتقالي) */}
                     <motion.button 
                       onClick={() => loadSheetData('المقاعد الشاغرة', 'شواغر دار القلم')}
@@ -1507,13 +2073,15 @@ function App() {
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                  <button 
-                    onClick={handleSaveToOriginal}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all"
-                  >
-                    <Save size={18} />
-                    حفظ التعديلات في الملف
-                  </button>
+                  {user.role !== 'admin' && (
+                    <button 
+                      onClick={handleSaveToOriginal}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all"
+                    >
+                      <Save size={18} />
+                      حفظ التعديلات في الملف
+                    </button>
+                  )}
                   <button 
                     onClick={() => setActiveSheet(null)}
                     className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all"
@@ -1525,7 +2093,7 @@ function App() {
               </div>
 
               {/* شريط الأدوات (يظهر عند تحديد خلايا) */}
-              {selectedCells.size > 0 && (
+              {selectedCells.size > 0 && user.role !== 'admin' && (
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1593,7 +2161,7 @@ function App() {
                       {(() => {
                         let isSelectionBold = false;
                         if (selectedCells.size > 0 && activeSheet) {
-                          const firstKey = Array.from(selectedCells)[0];
+                          const firstKey = Array.from(selectedCells)[0] as string;
                           isSelectionBold = !!activeSheet.colors?.[firstKey]?.bold;
                         }
                         return (

@@ -1,0 +1,15 @@
+
+[
+  {
+    "username": "admin",
+    "password": "admin123",
+    "role": "admin",
+    "complex": "كل المجمعات"
+  },
+  {
+    "username": "Masry",
+    "password": "Masry127",
+    "role": "user",
+    "complex": "دار القلم"
+  }
+]
