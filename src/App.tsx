@@ -5,10 +5,10 @@ import {
   Save, Calendar, Building2, UserSquare2, 
   Building, GraduationCap, Users, Briefcase, UserCog, HeartHandshake, FileText,
   BarChart, PieChart, Maximize, BatteryCharging, LineChart, Users2, Wallet,
-  Activity, LayoutGrid, TrendingUp, Gamepad2, ArrowRight, Trash2, Info,
+  Activity, LayoutGrid, TrendingUp, Gamepad2, ArrowRight, Trash2, Info, Flame, Settings,
   ChevronDown, Undo2, PaintBucket, Type, Combine, X, Eraser, Grid3X3, Columns, Rows, Image as ImageIcon,
   Shapes, Circle, Square, Triangle, ArrowLeft, ArrowUp, ArrowDown, Star,
-  Bold, AlignLeft, AlignCenter, AlignRight, Plus, Minus, ZoomIn, ZoomOut, ChevronUp, Split, Eye, EyeOff, Edit2, Check
+  Bold, AlignLeft, AlignCenter, AlignRight, Plus, Minus, ZoomIn, ZoomOut, ChevronUp, Split, Eye, EyeOff, Edit2, Check, Search
 } from 'lucide-react';
 
 interface ActiveSheetData {
@@ -94,7 +94,7 @@ function App() {
   // حالات تخزين اختيارات المستخدم
   const [academicYear, setAcademicYear] = useState('2026/2027');
   const [complexName, setComplexName] = useState('كل المجمعات');
-  const [pathName, setPathName] = useState('أهلي');
+  const [pathName, setPathName] = useState('كل المسارات');
   const [dataStatus, setDataStatus] = useState('الكل');
   
   // حالة اختيار الفئة (بيانات أو تقارير)
@@ -125,6 +125,9 @@ function App() {
   const [dragSnapshot, setDragSnapshot] = useState<Set<string>>(new Set());
   const [showShapesMenu, setShowShapesMenu] = useState(false);
   const [showBorderMenu, setShowBorderMenu] = useState(false);
+  const [activeReportCategory, setActiveReportCategory] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [resizing, setResizing] = useState<{type: 'col' | 'row', index: number, startPos: number, startSize: number} | null>(null);
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -329,7 +332,7 @@ function App() {
 
     try {
       setIsLoadingExcel(true);
-      const response = await fetch('/دار القلم ١٤٤٧.xlsx');
+      const response = await fetch('/data.xlsx');
       const arrayBuffer = await response.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       
@@ -802,7 +805,7 @@ function App() {
     if (!activeSheet) return;
     try {
       // 1. Get original file
-      const response = await fetch('/دار القلم ١٤٤٧.xlsx');
+      const response = await fetch('/data.xlsx');
       const arrayBuffer = await response.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       
@@ -813,21 +816,30 @@ function App() {
         { name: 'بيانات الإداريين', sheetName: 'اداريين دار القلم' },
         { name: 'بيانات الإداريات', sheetName: 'اداريات دار القلم' },
         { name: 'الخدمات المساندة', sheetName: 'الخدمات المساندة' },
-        { name: 'الوصف الوظيفي', sheetName: 'بيانات رواتب دار القلم' },
         { name: 'إحصاء الفصول والطلاب', sheetName: 'إحصاء الطلاب' },
         { name: 'إحصاء التخصصات', sheetName: 'إحصاء التخصصات' },
         { name: 'مساحات الفصول', sheetName: 'مساحات الفصول' },
         { name: 'الطاقة الاستيعابية', sheetName: 'الطاقة الاستيعابية' },
         { name: 'الإحصاء العام للمجمع', sheetName: 'الإحصاء العام للمجمع' },
-        { name: 'مقارنة اعداد الطلاب', sheetName: 'مؤشرات المجمع' },
         { name: 'العهدة المالية', sheetName: 'العهدة المالية' },
         { name: 'المقاعد الشاغرة', sheetName: 'شواغر دار القلم' },
         { name: 'ترتيب القدرات والتحصيلي', sheetName: 'القدرات والتحصيلي' },
         { name: 'النشاط', sheetName: 'نشاط بنين ف٢' },
+        { name: 'بيانات المرافق', sheetName: 'مساحات الفصول' },
         { name: 'مقارنة النمو', sheetName: 'مقارنة النمو' },
         { name: 'STR / SAR / SSR / SER', sheetName: 'مؤشرات المجمع' },
         { name: 'اسناد بنين ف1', sheetName: 'اسناد بنين ف١' },
-        { name: 'اسناد البنات ف1', sheetName: 'اسناد البنات ف١' }
+        { name: 'اسناد البنات ف1', sheetName: 'اسناد البنات ف١' },
+        { name: 'قدرات وتحصيلي', sheetName: 'القدرات والتحصيلي' },
+        { name: 'قدرات', sheetName: 'القدرات والتحصيلي' },
+        { name: 'تحصيلي', sheetName: 'القدرات والتحصيلي' },
+        { name: 'الجميع', sheetName: 'القدرات والتحصيلي' },
+        { name: 'نافس', sheetName: 'نافس' },
+        { name: 'تقارير المبنى', sheetName: 'تقارير المبنى' },
+        { name: 'الرخصة المهنية', sheetName: 'الرخصة المهنية' },
+        { name: 'الطلاب والفصول', sheetName: 'إحصاء الطلاب' },
+        { name: 'اسناد المعلمين', sheetName: 'اسناد بنين ف١' },
+        { name: 'اسناد المعلمات', sheetName: 'اسناد البنات ف١' }
       ];
 
       const originalSheetName = allCards.find(c => c.name === activeSheet.title)?.sheetName;
@@ -882,18 +894,101 @@ function App() {
     { name: 'بيانات الإداريين', sheetName: 'اداريين دار القلم', icon: Briefcase },
     { name: 'بيانات الإداريات', sheetName: 'اداريات دار القلم', icon: UserCog },
     { name: 'الخدمات المساندة', sheetName: 'الخدمات المساندة', icon: HeartHandshake },
-    { name: 'الوصف الوظيفي', sheetName: 'بيانات رواتب دار القلم', icon: FileText },
+    { name: 'إحصاء الفصول والطلاب', sheetName: 'إحصاء الطلاب', icon: BarChart },
+    { name: 'مساحات الفصول', sheetName: 'مساحات الفصول', icon: Maximize },
+    { name: 'العهدة المالية', sheetName: 'العهدة المالية', icon: Wallet },
+    { name: 'النشاط', sheetName: 'نشاط بنين ف٢', icon: Gamepad2 },
+    { name: 'بيانات المرافق', sheetName: 'مساحات الفصول', icon: Building2 },
+    { name: 'اسناد بنين ف1', sheetName: 'اسناد بنين ف١', icon: Users },
+    { name: 'اسناد البنات ف1', sheetName: 'اسناد البنات ف١', icon: Users },
+    { name: 'قدرات وتحصيلي', sheetName: 'القدرات والتحصيلي', icon: TrendingUp },
+    { name: 'نافس', sheetName: 'نافس', icon: Activity },
   ];
 
   const blueCards = [
-    { name: 'إحصاء الفصول والطلاب', sheetName: 'إحصاء الطلاب', icon: BarChart },
-    { name: 'إحصاء التخصصات', sheetName: 'إحصاء التخصصات', icon: PieChart },
-    { name: 'مساحات الفصول', sheetName: 'مساحات الفصول', icon: Maximize },
-    { name: 'الطاقة الاستيعابية', sheetName: 'الطاقة الاستيعابية', icon: BatteryCharging },
-    { name: 'الإحصاء العام للمجمع', sheetName: 'الإحصاء العام للمجمع', icon: LineChart },
-    { name: 'مقارنة اعداد الطلاب', sheetName: 'مؤشرات المجمع', icon: Users2 },
-    { name: 'العهدة المالية', sheetName: 'العهدة المالية', icon: Wallet },
+    { 
+      name: 'تقارير الأداء الأكاديمي', sheetName: 'تقارير الأداء الأكاديمي', icon: GraduationCap,
+      bgClass: 'bg-gradient-to-br from-indigo-500 to-indigo-600',
+      borderClass: 'border-indigo-400/50',
+      hoverClass: 'hover:shadow-indigo-500/40 hover:-translate-y-2 hover:scale-[1.02]',
+      ringClass: 'ring-indigo-400',
+      iconHoverText: 'group-hover:text-indigo-600'
+    },
+    { 
+      name: 'تقارير الموظفين', sheetName: 'تقارير الموظفين', icon: Users,
+      bgClass: 'bg-gradient-to-br from-emerald-500 to-emerald-600',
+      borderClass: 'border-emerald-400/50',
+      hoverClass: 'hover:shadow-emerald-500/40 hover:-translate-y-2 hover:scale-[1.02]',
+      ringClass: 'ring-emerald-400',
+      iconHoverText: 'group-hover:text-emerald-600'
+    },
+    { 
+      name: 'تقارير إحصائية', sheetName: 'تقارير إحصائية', icon: PieChart,
+      bgClass: 'bg-gradient-to-br from-amber-500 to-orange-500',
+      borderClass: 'border-amber-400/50',
+      hoverClass: 'hover:shadow-amber-500/40 hover:-translate-y-2 hover:scale-[1.02]',
+      ringClass: 'ring-amber-400',
+      iconHoverText: 'group-hover:text-orange-600'
+    },
+    { 
+      name: 'تقارير المؤشرات', sheetName: 'مؤشرات المجمع', icon: Activity,
+      bgClass: 'bg-gradient-to-br from-rose-500 to-rose-600',
+      borderClass: 'border-rose-400/50',
+      hoverClass: 'hover:shadow-rose-500/40 hover:-translate-y-2 hover:scale-[1.02]',
+      ringClass: 'ring-rose-400',
+      iconHoverText: 'group-hover:text-rose-600'
+    },
+    { 
+      name: 'تقارير النشاط', sheetName: 'نشاط بنين ف٢', icon: Flame,
+      bgClass: 'bg-gradient-to-br from-orange-500 to-red-500',
+      borderClass: 'border-orange-400/50',
+      hoverClass: 'hover:shadow-orange-500/40 hover:-translate-y-2 hover:scale-[1.02]',
+      ringClass: 'ring-orange-400',
+      iconHoverText: 'group-hover:text-red-600'
+    },
+    { 
+      name: 'تقارير فنية', sheetName: 'تقارير فنية', icon: Settings,
+      bgClass: 'bg-gradient-to-br from-cyan-500 to-blue-500',
+      borderClass: 'border-cyan-400/50',
+      hoverClass: 'hover:shadow-cyan-500/40 hover:-translate-y-2 hover:scale-[1.02]',
+      ringClass: 'ring-cyan-400',
+      iconHoverText: 'group-hover:text-cyan-600'
+    },
+    { 
+      name: 'تقارير المبنى', sheetName: 'تقارير المبنى', icon: Building2,
+      bgClass: 'bg-gradient-to-br from-violet-500 to-fuchsia-600',
+      borderClass: 'border-violet-400/50',
+      hoverClass: 'hover:shadow-violet-500/40 hover:-translate-y-2 hover:scale-[1.02]',
+      ringClass: 'ring-violet-400',
+      iconHoverText: 'group-hover:text-fuchsia-600'
+    },
   ];
+
+  const reportSubCards: Record<string, { name: string, sheetName: string, icon: any }[]> = {
+    'تقارير المبنى': [
+      { name: 'مرافق', sheetName: 'مساحات الفصول', icon: Building2 },
+      { name: 'طاقة استيعابية', sheetName: 'الطاقة الاستيعابية', icon: BatteryCharging },
+      { name: 'مساحة الفصول', sheetName: 'مساحات الفصول', icon: Maximize }
+    ],
+    'تقارير الأداء الأكاديمي': [
+      { name: 'قدرات', sheetName: 'القدرات والتحصيلي', icon: TrendingUp },
+      { name: 'تحصيلي', sheetName: 'القدرات والتحصيلي', icon: TrendingUp },
+      { name: 'نافس', sheetName: 'نافس', icon: Activity },
+      { name: 'الجميع', sheetName: 'القدرات والتحصيلي', icon: Users2 }
+    ],
+    'تقارير إحصائية': [
+      { name: 'الطلاب والفصول', sheetName: 'إحصاء الطلاب', icon: Users },
+      { name: 'الرخصة المهنية', sheetName: 'الرخصة المهنية', icon: FileText },
+      { name: 'احصاء التخصصات', sheetName: 'إحصاء التخصصات', icon: PieChart },
+      { name: 'مقاعد شاغرة', sheetName: 'شواغر دار القلم', icon: LayoutGrid },
+      { name: 'الاحصاء العام للمجمع', sheetName: 'الإحصاء العام للمجمع', icon: LineChart },
+      { name: 'مقارنة نمو الطلاب', sheetName: 'مقارنة النمو', icon: TrendingUp }
+    ],
+    'تقارير فنية': [
+      { name: 'اسناد المعلمين', sheetName: 'اسناد بنين ف١', icon: UserSquare2 },
+      { name: 'اسناد المعلمات', sheetName: 'اسناد البنات ف١', icon: Users }
+    ]
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -1226,6 +1321,7 @@ function App() {
       const data = await res.json();
       if (res.ok) {
         setUser({ username: data.username, role: data.role, complex: data.complex });
+        setSelectedCategory(data.role === 'admin' ? 'تقارير' : 'بيانات');
       } else {
         setLoginError(data.error || 'خطأ في تسجيل الدخول');
       }
@@ -1651,7 +1747,10 @@ function App() {
               الإعدادات
             </button>
             <button 
-              onClick={() => setUser(null)}
+              onClick={() => {
+                setUser(null);
+                setSelectedCategory('بيانات');
+              }}
               className="bg-white border border-red-200 hover:bg-red-50 text-red-600 px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-sm mr-2"
             >
               تسجيل الخروج
@@ -1711,6 +1810,7 @@ function App() {
                 onChange={(e) => setPathName(e.target.value)}
                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all cursor-pointer text-slate-700"
               >
+                <option value="كل المسارات">كل المسارات</option>
                 <option value="أهلي">أهلي</option>
                 <option value="دولي">دولي</option>
                 <option value="دبلومة أمريكية">دبلومة أمريكية</option>
@@ -1768,7 +1868,7 @@ function App() {
                   onClick={async () => {
                     try {
                       // جلب الملف الأصلي
-                      const response = await fetch('/دار القلم ١٤٤٧.xlsx');
+                      const response = await fetch('/data.xlsx');
                       const arrayBuffer = await response.arrayBuffer();
                       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
                       
@@ -1776,14 +1876,14 @@ function App() {
                       Object.entries(modifiedSheets).forEach(([title, sheetData]: [string, any]) => {
                         // تحديد اسم الشيت الأصلي
                         const allCards = [...whiteCards, ...blueCards, 
-                          { name: 'المقاعد الشاغرة', sheetName: 'شواغر دار القلم' },
                           { name: 'ترتيب القدرات والتحصيلي', sheetName: 'القدرات والتحصيلي' },
-                          { name: 'النشاط', sheetName: 'نشاط بنين ف٢' },
-                          { name: 'بيانات المرافق', sheetName: 'مساحات الفصول' },
-                          { name: 'مقارنة النمو', sheetName: 'مقارنة النمو' },
-                          { name: 'STR / SAR / SSR / SER', sheetName: 'مؤشرات المجمع' },
-                          { name: 'اسناد بنين ف1', sheetName: 'اسناد بنين ف١' },
-                          { name: 'اسناد البنات ف1', sheetName: 'اسناد البنات ف١' },
+                          { name: 'قدرات', sheetName: 'القدرات والتحصيلي' },
+                          { name: 'تحصيلي', sheetName: 'القدرات والتحصيلي' },
+                          { name: 'الجميع', sheetName: 'القدرات والتحصيلي' },
+                          { name: 'الرخصة المهنية', sheetName: 'الرخصة المهنية' },
+                          { name: 'الطلاب والفصول', sheetName: 'إحصاء الطلاب' },
+                          { name: 'اسناد المعلمين', sheetName: 'اسناد بنين ف١' },
+                          { name: 'اسناد المعلمات', sheetName: 'اسناد البنات ف١' },
                         ];
                         
                         const originalSheetName = allCards.find(c => c.name === title)?.sheetName;
@@ -1798,7 +1898,7 @@ function App() {
                       });
                       
                       // تصدير وتنزيل الملف الجديد
-                      XLSX.writeFile(workbook, 'دار القلم ١٤٤٧.xlsx');
+                      XLSX.writeFile(workbook, 'data.xlsx');
                       alert("تم تصدير ملف الإكسيل بنجاح!");
                     } catch (error) {
                       console.error("Export error:", error);
@@ -1853,53 +1953,23 @@ function App() {
               </motion.div>
 
               {/* شرط عرض البيانات */}
-              {savedData.complex === 'دار القلم' && savedData.year === '2026/2027' ? (
+              {(savedData.complex === 'دار القلم' || (user?.role === 'admin' && savedData.complex === 'كل المجمعات')) && savedData.year === '2026/2027' ? (
                 <>
-                  {/* المربع الجديد: STR/SAR/SSR/SER */}
-                  <div className="w-full flex justify-center mb-6">
-                    <motion.button 
-                      onClick={() => loadSheetData('STR / SAR / SSR / SER', 'مؤشرات المجمع')}
-                      variants={itemVariants} 
-                      className="w-full max-w-2xl bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl p-6 shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center gap-3 group"
-                    >
-                      <Activity size={40} className="group-hover:scale-110 transition-transform" />
-                      <span className="text-2xl md:text-3xl font-extrabold tracking-wider">STR / SAR / SSR / SER</span>
-                    </motion.button>
-                  </div>
-
-                  {/* مربعين إسناد بنين وبنات */}
-                  <div className="w-full flex flex-row justify-center gap-4 md:gap-6 mb-12 max-w-3xl mx-auto">
-                    <motion.button 
-                      onClick={() => loadSheetData('اسناد بنين ف1', 'اسناد بنين ف١')}
-                      variants={itemVariants} 
-                      className="flex-1 bg-cyan-700 hover:bg-cyan-800 text-white rounded-2xl p-6 shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center gap-3 group"
-                    >
-                      <Users size={36} className="group-hover:scale-110 transition-transform" />
-                      <span className="text-xl md:text-2xl font-bold">اسناد بنين ف1</span>
-                    </motion.button>
-                    <motion.button 
-                      onClick={() => loadSheetData('اسناد البنات ف1', 'اسناد البنات ف١')}
-                      variants={itemVariants} 
-                      className="flex-1 bg-cyan-700 hover:bg-cyan-800 text-white rounded-2xl p-6 shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center gap-3 group"
-                    >
-                      <Users size={36} className="group-hover:scale-110 transition-transform" />
-                      <span className="text-xl md:text-2xl font-bold">اسناد البنات ف1</span>
-                    </motion.button>
-                  </div>
-
                   {/* أزرار اختيار الفئة (بيانات أو تقارير) */}
                   <div className="flex flex-row justify-center gap-4 md:gap-6 mb-8 w-full max-w-2xl mx-auto">
-                    <button
-                      onClick={() => setSelectedCategory('بيانات')}
-                      className={`flex-1 py-4 md:py-6 rounded-2xl font-bold text-xl md:text-2xl shadow-md transition-all duration-300 flex flex-col items-center justify-center gap-3 ${
-                        selectedCategory === 'بيانات'
-                          ? 'bg-blue-600 text-white border-2 border-blue-700 scale-105 shadow-lg'
-                          : 'bg-white text-blue-700 border-2 border-slate-200 hover:bg-blue-50 hover:-translate-y-1'
-                      }`}
-                    >
-                      <LayoutGrid size={36} className={selectedCategory === 'بيانات' ? 'animate-bounce' : ''} />
-                      بيانات
-                    </button>
+                    {user?.role !== 'admin' && (
+                      <button
+                        onClick={() => setSelectedCategory('بيانات')}
+                        className={`flex-1 py-4 md:py-6 rounded-2xl font-bold text-xl md:text-2xl shadow-md transition-all duration-300 flex flex-col items-center justify-center gap-3 ${
+                          selectedCategory === 'بيانات'
+                            ? 'bg-blue-600 text-white border-2 border-blue-700 scale-105 shadow-lg'
+                            : 'bg-white text-blue-700 border-2 border-slate-200 hover:bg-blue-50 hover:-translate-y-1'
+                        }`}
+                      >
+                        <LayoutGrid size={36} className={selectedCategory === 'بيانات' ? 'animate-bounce' : ''} />
+                        بيانات
+                      </button>
+                    )}
                     <button
                       onClick={() => setSelectedCategory('تقارير')}
                       className={`flex-1 py-4 md:py-6 rounded-2xl font-bold text-xl md:text-2xl shadow-md transition-all duration-300 flex flex-col items-center justify-center gap-3 ${
@@ -1913,25 +1983,38 @@ function App() {
                     </button>
                   </div>
 
+                  <div className="w-full max-w-2xl mx-auto mb-6 relative">
+                    <input
+                      type="text"
+                      placeholder="ابحث عن بطاقة أو تقرير..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full px-5 py-4 pl-12 rounded-2xl border-2 border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-blue-500 shadow-sm transition-colors text-right"
+                      dir="rtl"
+                    />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={24} />
+                  </div>
+
                   {/* القوائم المربعة - أفقية (البيضاء فوق والزرقاء تحت) */}
                   <div className="flex flex-col gap-6 md:gap-8 w-full mb-12">
                     
                     {/* صف البطاقات البيضاء */}
                     {selectedCategory === 'بيانات' && (
                       <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="show"
                         className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4 lg:gap-5 w-full"
                       >
-                        {whiteCards.map((card, idx) => (
+                        {whiteCards.filter(card => card.name.includes(searchQuery)).map((card, idx) => (
                           <motion.button 
                             onClick={() => loadSheetData(card.name, card.sheetName)}
                             variants={itemVariants}
                             key={idx}
-                            className="flex flex-col items-center justify-center gap-2 lg:gap-3 p-2 lg:p-4 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 hover:-translate-y-1 transition-all duration-300 group aspect-square text-center w-full"
+                            className="flex flex-col items-center justify-center gap-2 lg:gap-3 p-2 lg:p-4 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-blue-500/15 hover:border-blue-300 hover:-translate-y-2 hover:scale-[1.02] transition-all duration-300 group aspect-square text-center w-full relative z-10"
                           >
-                            <div className="p-2 lg:p-3 bg-blue-50 text-blue-600 rounded-xl lg:rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
-                              <card.icon className="w-7 h-7 lg:w-9 lg:h-9 opacity-90" />
+                            <div className="p-2 lg:p-3 bg-slate-50 text-blue-600 rounded-xl lg:rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300 shadow-inner">
+                              <card.icon className="w-7 h-7 lg:w-9 lg:h-9 opacity-90 drop-shadow-sm" />
                             </div>
                             <span className="text-xs lg:text-sm font-bold text-slate-700 leading-snug group-hover:text-blue-700 px-1">
                               {card.name}
@@ -1943,79 +2026,80 @@ function App() {
 
                     {/* صف البطاقات الزرقاء */}
                     {selectedCategory === 'تقارير' && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4 lg:gap-5 w-full"
-                      >
-                        {blueCards.map((card, idx) => (
-                          <motion.button 
-                            onClick={() => loadSheetData(card.name, card.sheetName)}
-                            variants={itemVariants}
-                            key={idx}
-                            className="flex flex-col items-center justify-center gap-2 lg:gap-3 p-2 lg:p-4 bg-blue-600 rounded-2xl border border-blue-700 shadow-sm hover:shadow-md hover:bg-blue-700 hover:border-blue-800 hover:-translate-y-1 transition-all duration-300 group aspect-square text-center w-full"
-                          >
-                            <div className="p-2 lg:p-3 bg-blue-500/50 text-white rounded-xl lg:rounded-2xl group-hover:bg-white group-hover:text-blue-700 transition-colors duration-300">
-                              <card.icon className="w-7 h-7 lg:w-9 lg:h-9 opacity-100" />
-                            </div>
-                            <span className="text-xs lg:text-sm font-bold text-white leading-snug px-1">
-                              {card.name}
-                            </span>
-                          </motion.button>
-                        ))}
-                      </motion.div>
+                      <div className="w-full">
+                        {activeReportCategory && (
+                          <div className="mb-6 flex justify-start">
+                            <button
+                              onClick={() => setActiveReportCategory(null)}
+                              className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 rounded-xl border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors font-bold group"
+                            >
+                              <ArrowRight size={20} className="group-hover:-translate-x-1 transition-transform" />
+                              <span>رجوع للتقارير الرئيسية</span>
+                            </button>
+                          </div>
+                        )}
+                        <motion.div 
+                          variants={containerVariants}
+                          initial="hidden"
+                          animate="show"
+                          key={activeReportCategory || 'main'}
+                          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4 lg:gap-5 w-full"
+                        >
+                          {!activeReportCategory ? (
+                            blueCards.filter(card => {
+                              if (card.name.includes(searchQuery)) return true;
+                              const subCards = reportSubCards[card.name];
+                              if (subCards && subCards.some(sub => sub.name.includes(searchQuery))) return true;
+                              return false;
+                            }).map((card, idx) => (
+                              <motion.button 
+                                key={idx}
+                                onClick={() => {
+                                  if (reportSubCards[card.name]) {
+                                    setActiveReportCategory(card.name);
+                                  } else {
+                                    loadSheetData(card.name, card.sheetName);
+                                  }
+                                }}
+                                variants={itemVariants}
+                                className={`flex flex-col items-center justify-center gap-2 lg:gap-3 p-2 lg:p-4 ${card.bgClass} rounded-2xl border ${card.borderClass} shadow-md transition-all duration-300 group aspect-square text-center w-full relative z-10 ${card.hoverClass}`}
+                              >
+                                <div className={`p-2 lg:p-3 bg-white/20 text-white rounded-xl lg:rounded-2xl backdrop-blur-sm group-hover:bg-white ${card.iconHoverText} transition-colors duration-300 shadow-inner`}>
+                                  <card.icon className="w-7 h-7 lg:w-9 lg:h-9 opacity-100 drop-shadow-sm" />
+                                </div>
+                                <span className="text-xs lg:text-sm font-bold text-white leading-snug px-1">
+                                  {card.name}
+                                </span>
+                              </motion.button>
+                            ))
+                          ) : (
+                            reportSubCards[activeReportCategory]?.filter(subCard => subCard.name.includes(searchQuery)).map((subCard, idx) => {
+                              const parentCard = blueCards.find(c => c.name === activeReportCategory);
+                              const bgClass = parentCard?.bgClass || 'bg-blue-600';
+                              const borderClass = parentCard?.borderClass || 'border-blue-700';
+                              const hoverClass = parentCard?.hoverClass || 'hover:-translate-y-2';
+                              const iconHoverText = parentCard?.iconHoverText || 'group-hover:text-blue-600';
+
+                              return (
+                                <motion.button 
+                                  key={idx}
+                                  onClick={() => loadSheetData(subCard.name, subCard.sheetName)}
+                                  variants={itemVariants}
+                                  className={`flex flex-col items-center justify-center gap-2 lg:gap-3 p-2 lg:p-4 ${bgClass} rounded-2xl border ${borderClass} shadow-md transition-all duration-300 group aspect-square text-center w-full relative z-10 ${hoverClass}`}
+                                >
+                                  <div className={`p-2 lg:p-3 bg-white/20 text-white rounded-xl lg:rounded-2xl backdrop-blur-sm group-hover:bg-white ${iconHoverText} transition-colors duration-300 shadow-inner`}>
+                                    <subCard.icon className="w-7 h-7 lg:w-9 lg:h-9 opacity-100 drop-shadow-sm" />
+                                  </div>
+                                  <span className="text-xs lg:text-sm font-bold text-white leading-snug px-1">
+                                    {subCard.name}
+                                  </span>
+                                </motion.button>
+                              );
+                            })
+                          )}
+                        </motion.div>
+                      </div>
                     )}
-                  </div>
-
-                  {/* المربعات الأربعة السفلية */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl mx-auto mt-4">
-                    {/* المجموعة الأولى (برتقالي) */}
-                    <motion.button 
-                      onClick={() => loadSheetData('المقاعد الشاغرة', 'شواغر دار القلم')}
-                      variants={itemVariants} 
-                      className="bg-orange-500 hover:bg-orange-600 text-white p-6 md:p-8 rounded-2xl shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-                    >
-                      <LayoutGrid size={40} className="group-hover:scale-110 transition-transform" />
-                      <span className="text-xl font-bold">المقاعد الشاغرة</span>
-                    </motion.button>
-                    <motion.button 
-                      onClick={() => loadSheetData('ترتيب القدرات والتحصيلي', 'القدرات والتحصيلي')}
-                      variants={itemVariants} 
-                      className="bg-orange-500 hover:bg-orange-600 text-white p-6 md:p-8 rounded-2xl shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-                    >
-                      <TrendingUp size={40} className="group-hover:scale-110 transition-transform" />
-                      <span className="text-xl font-bold text-center leading-tight">ترتيب القدرات والتحصيلي</span>
-                    </motion.button>
-
-                    {/* المجموعة الثانية (أخضر زمردي) */}
-                    <motion.button 
-                      onClick={() => loadSheetData('النشاط', 'نشاط بنين ف٢')}
-                      variants={itemVariants} 
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white p-6 md:p-8 rounded-2xl shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-                    >
-                      <Gamepad2 size={40} className="group-hover:scale-110 transition-transform" />
-                      <span className="text-xl font-bold">النشاط</span>
-                    </motion.button>
-                    <motion.button 
-                      onClick={() => loadSheetData('بيانات المرافق', 'مساحات الفصول')}
-                      variants={itemVariants} 
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white p-6 md:p-8 rounded-2xl shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-                    >
-                      <Building2 size={40} className="group-hover:scale-110 transition-transform" />
-                      <span className="text-xl font-bold">بيانات المرافق</span>
-                    </motion.button>
-                  </div>
-
-                  {/* المربع الجديد: مقارنة النمو (أصفر) */}
-                  <div className="w-full flex justify-center mt-8">
-                    <motion.button 
-                      onClick={() => loadSheetData('مقارنة النمو', 'مقارنة النمو')}
-                      variants={itemVariants} 
-                      className="w-full max-w-2xl bg-amber-500 hover:bg-amber-600 text-white rounded-2xl p-6 shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center gap-3 group"
-                    >
-                      <LineChart size={40} className="group-hover:scale-110 transition-transform" />
-                      <span className="text-2xl md:text-3xl font-extrabold tracking-wider">مقارنة النمو</span>
-                    </motion.button>
                   </div>
                 </>
               ) : (
