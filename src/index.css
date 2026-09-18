@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+body {
+  margin: 0;
+  padding: 0;
+  background-image: url('/خلفية%20للموقع.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
 @layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;

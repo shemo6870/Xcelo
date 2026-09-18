@@ -99,7 +99,7 @@ function App() {
   const [dataStatus, setDataStatus] = useState('الكل');
   
   // حالة اختيار الفئة (بيانات أو تقارير)
-  const [selectedCategory, setSelectedCategory] = useState<'بيانات' | 'تقارير' | null>('بيانات');
+  const [selectedCategory, setSelectedCategory] = useState<'بيانات' | 'تقارير' | null>(null);
   
   // حالة تخزين البيانات بعد الضغط على حفظ لعرضها
   const [savedData, setSavedData] = useState<{ complex: string; year: string; path: string } | null>(null);
@@ -1324,7 +1324,14 @@ function App() {
       if (data.success) {
 
         setUser({ username: data.username, role: data.role, complex: data.complex });
-        setSelectedCategory(data.role === 'admin' ? 'تقارير' : 'بيانات');
+        setSelectedCategory(null);
+        const initialComplex = data.role === 'admin' ? 'كل المجمعات' : (data.complex || 'دار القلم');
+        setComplexName(initialComplex);
+        setSavedData({
+          complex: initialComplex,
+          year: academicYear,
+          path: pathName
+        });
       } else {
         setLoginError(data.error || 'خطأ في تسجيل الدخول');
       }
@@ -1432,11 +1439,11 @@ function App() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4 font-sans dir-rtl text-right" dir="rtl">
+      <div id="login-container" className="min-h-screen flex flex-col justify-center items-center p-4 font-sans dir-rtl text-right relative bg-slate-900/10 backdrop-blur-[1px]" dir="rtl">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-8 sm:p-10 rounded-[2rem] shadow-xl w-full max-w-md border border-slate-100 flex flex-col items-center relative overflow-hidden"
+          className="bg-white/95 backdrop-blur-md p-8 sm:p-10 rounded-[2rem] shadow-2xl w-full max-w-md border border-white/80 flex flex-col items-center relative overflow-hidden"
         >
           <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-500 to-emerald-400"></div>
           
@@ -1506,7 +1513,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-blue-50/50 text-slate-800 font-sans p-3 sm:p-6 md:p-12" dir="rtl">
+    <div id="main-app-container" className="min-h-screen flex flex-col bg-slate-50/80 backdrop-blur-[1.5px] text-slate-800 font-sans p-3 sm:p-6 md:p-12 relative" dir="rtl">
       {/* لوحة الإعدادات */}
       {showSettings && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1722,7 +1729,9 @@ function App() {
             <button 
               onClick={() => {
                 setUser(null);
-                setSelectedCategory('بيانات');
+                setSelectedCategory(null);
+                setSavedData(null);
+                setActiveSheet(null);
               }}
               className="bg-white border border-red-200 hover:bg-red-50 text-red-600 px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-sm mr-2"
             >
@@ -1937,7 +1946,7 @@ function App() {
                   <div className="flex flex-row justify-center gap-4 md:gap-6 mb-8 w-full max-w-2xl mx-auto">
                     {user?.role !== 'admin' && (
                       <button
-                        onClick={() => setSelectedCategory('بيانات')}
+                        onClick={() => setSelectedCategory(prev => prev === 'بيانات' ? null : 'بيانات')}
                         className={`flex-1 py-4 md:py-6 rounded-2xl font-bold text-xl md:text-2xl shadow-md transition-all duration-300 flex flex-col items-center justify-center gap-3 ${
                           selectedCategory === 'بيانات'
                             ? 'bg-blue-600 text-white border-2 border-blue-700 scale-105 shadow-lg'
@@ -1949,7 +1958,7 @@ function App() {
                       </button>
                     )}
                     <button
-                      onClick={() => setSelectedCategory('تقارير')}
+                      onClick={() => setSelectedCategory(prev => prev === 'تقارير' ? null : 'تقارير')}
                       className={`flex-1 py-4 md:py-6 rounded-2xl font-bold text-xl md:text-2xl shadow-md transition-all duration-300 flex flex-col items-center justify-center gap-3 ${
                         selectedCategory === 'تقارير'
                           ? 'bg-blue-600 text-white border-2 border-blue-700 scale-105 shadow-lg'
@@ -1961,23 +1970,33 @@ function App() {
                     </button>
                   </div>
 
-                  <div className="w-full max-w-2xl mx-auto mb-6 relative">
-                    <input
-                      type="text"
-                      placeholder="ابحث عن بطاقة أو تقرير..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full px-5 py-4 pl-12 rounded-2xl border-2 border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-blue-500 shadow-sm transition-colors text-right"
-                      dir="rtl"
-                    />
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={24} />
-                  </div>
+                  {selectedCategory ? (
+                    <div className="w-full max-w-2xl mx-auto mb-6 relative">
+                      <input
+                        type="text"
+                        placeholder={`ابحث في ${selectedCategory === 'بيانات' ? 'بطاقات البيانات' : 'التقارير'}...`}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full px-5 py-4 pl-12 rounded-2xl border-2 border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-blue-500 shadow-sm transition-colors text-right"
+                        dir="rtl"
+                      />
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={24} />
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 px-4 text-slate-500 font-medium bg-blue-50/60 rounded-2xl border border-blue-100 max-w-xl mx-auto mb-8">
+                      <p className="text-base md:text-lg">
+                        {user?.role === 'admin'
+                          ? 'اضغط على زر «تقارير» لعرض البطاقات'
+                          : 'اضغط على زر «بيانات» أو «تقارير» لعرض البطاقات'}
+                      </p>
+                    </div>
+                  )}
 
                   {/* القوائم المربعة - أفقية (البيضاء فوق والزرقاء تحت) */}
                   <div className="flex flex-col gap-6 md:gap-8 w-full mb-12">
                     
                     {/* صف البطاقات البيضاء */}
-                    {selectedCategory === 'بيانات' && (
+                    {selectedCategory === 'بيانات' && user?.role !== 'admin' && (
                       <motion.div 
                         variants={containerVariants}
                         initial="hidden"
