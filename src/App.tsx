@@ -1,3 +1,4 @@
+import { getUsers, loginUser, addUser, updateUser, deleteUser, saveExcelToFirestore, loadExcelFromFirestore } from './lib/api';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import * as XLSX from 'xlsx';
@@ -332,8 +333,13 @@ function App() {
 
     try {
       setIsLoadingExcel(true);
-      const response = await fetch('/data.xlsx');
-      const arrayBuffer = await response.arrayBuffer();
+      
+      let arrayBuffer = await loadExcelFromFirestore();
+      if (!arrayBuffer) {
+        const response = await fetch('/data.xlsx');
+        arrayBuffer = await response.arrayBuffer();
+      }
+
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       
       if (!workbook.SheetNames.includes(sheetName)) {
@@ -805,8 +811,13 @@ function App() {
     if (!activeSheet) return;
     try {
       // 1. Get original file
-      const response = await fetch('/data.xlsx');
-      const arrayBuffer = await response.arrayBuffer();
+      
+      let arrayBuffer = await loadExcelFromFirestore();
+      if (!arrayBuffer) {
+        const response = await fetch('/data.xlsx');
+        arrayBuffer = await response.arrayBuffer();
+      }
+
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       
       const allCards = [
@@ -865,18 +876,13 @@ function App() {
         const outBuffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
         
         // Post to server to save directly
-        const saveRes = await fetch('/api/save-excel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/octet-stream' },
-          body: outBuffer
-        });
-        
-        if (saveRes.ok) {
+        const saveRes = await saveExcelToFirestore(outBuffer);
+        if (saveRes.success) {
           alert('تم الحفظ في الملف الأصلي بنجاح!');
           // Update local state modified sheets as well just in case
           setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: activeSheet }));
         } else {
-          throw new Error('Server returned ' + saveRes.status);
+          throw new Error('Server returned ' + 400);
         }
       } else {
         alert('لم يتم العثور على اسم الشيت الأصلي للحفظ!');
@@ -1313,13 +1319,10 @@ function App() {
     setIsLoggingIn(true);
     setLoginError('');
     try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: loginUsername, password: loginPassword })
-      });
-      const data = await res.json();
-      if (res.ok) {
+      
+      const data = await loginUser(loginUsername, loginPassword);
+      if (data.success) {
+
         setUser({ username: data.username, role: data.role, complex: data.complex });
         setSelectedCategory(data.role === 'admin' ? 'تقارير' : 'بيانات');
       } else {
@@ -1332,27 +1335,15 @@ function App() {
     }
   };
 
+  
   const handleChangeCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
     setSettingsMessage({ type: '', text: '' });
     try {
-      const res = await fetch('/api/users', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          oldUsername: user?.username, 
-          newUsername: editUsername, 
-          newPassword: editPassword 
-        })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSettingsMessage({ type: 'success', text: 'تم تحديث بياناتك بنجاح' });
-        if (editUsername) {
-          setUser({ ...user!, username: editUsername });
-        }
-        setEditUsername('');
-        setEditPassword('');
+      const data = await updateUser(user!.username, editUsername || undefined, editPassword || undefined, undefined);
+      if (data.success) {
+        setSettingsMessage({ type: 'success', text: 'تم تحديث البيانات بنجاح، سيتم تسجيل خروجك' });
+        setTimeout(() => setUser(null), 2000);
       } else {
         setSettingsMessage({ type: 'error', text: data.error || 'حدث خطأ' });
       }
@@ -1365,18 +1356,8 @@ function App() {
     e.preventDefault();
     setSettingsMessage({ type: '', text: '' });
     try {
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          username: addUsername, 
-          password: addPassword,
-          role: 'user',
-          complex: addComplex
-        })
-      });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await addUser(addUsername, addPassword, 'user', addComplex);
+      if (data.success) {
         setSettingsMessage({ type: 'success', text: 'تم إضافة المستخدم بنجاح' });
         setAddUsername('');
         setAddPassword('');
@@ -1391,11 +1372,11 @@ function App() {
   };
 
   const fetchUsers = async () => {
+
     try {
-      const res = await fetch('/api/users');
-      const data = await res.json();
+      const data = await getUsers();
       setAllUsers(data);
-    } catch (err) {
+      } catch (err) {
       console.error('Error fetching users:', err);
     }
   };
@@ -1409,14 +1390,13 @@ function App() {
   const handleDeleteUser = async (username: string) => {
     if (!window.confirm(`هل أنت متأكد من حذف المستخدم "${username}"؟`)) return;
     try {
-      const res = await fetch(`/api/users/${username}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
+      
+      const res = await deleteUser(username);
+      if (res.success) {
         fetchUsers();
       } else {
-        const data = await res.json();
-        alert(data.error || 'حدث خطأ أثناء الحذف');
+        
+        alert(res.error || 'حدث خطأ أثناء الحذف');
       }
     } catch (err) {
       alert('تعذر الاتصال بالخادم');
@@ -1425,21 +1405,14 @@ function App() {
 
   const handleSaveEditUser = async (oldUsername: string) => {
     try {
-      const res = await fetch('/api/users', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          oldUsername, 
-          newUsername: editUserForm.username, 
-          newPassword: editUserForm.password,
-          newComplex: editUserForm.complex
-        })
-      });
-      if (res.ok) {
+      const res = await updateUser(oldUsername, editUserForm.username, editUserForm.password, editUserForm.complex);
+      const data = res;
+      
+      if (res.success) {
         setEditingUsername(null);
         fetchUsers();
       } else {
-        const data = await res.json();
+        
         alert(data.error || 'حدث خطأ');
       }
     } catch (err) {
@@ -1868,8 +1841,13 @@ function App() {
                   onClick={async () => {
                     try {
                       // جلب الملف الأصلي
-                      const response = await fetch('/data.xlsx');
-                      const arrayBuffer = await response.arrayBuffer();
+                      
+      let arrayBuffer = await loadExcelFromFirestore();
+      if (!arrayBuffer) {
+        const response = await fetch('/data.xlsx');
+        arrayBuffer = await response.arrayBuffer();
+      }
+
                       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
                       
                       // استبدال الشيتات المعدلة في الملف الأصلي
