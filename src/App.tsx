@@ -9,7 +9,8 @@ import {
   Activity, LayoutGrid, TrendingUp, Gamepad2, ArrowRight, Trash2, Info, Flame, Settings,
   ChevronDown, Undo2, PaintBucket, Type, Combine, X, Eraser, Grid3X3, Columns, Rows, Image as ImageIcon,
   Shapes, Circle, Square, Triangle, ArrowLeft, ArrowUp, ArrowDown, Star,
-  Bold, AlignLeft, AlignCenter, AlignRight, Plus, Minus, ZoomIn, ZoomOut, ChevronUp, Split, Eye, EyeOff, Edit2, Check, Search
+  Bold, AlignLeft, AlignCenter, AlignRight, Plus, Minus, ZoomIn, ZoomOut, ChevronUp, Split, Eye, EyeOff, Edit2, Check, Search, Minimize2, Sparkles,
+  Mail, Globe, BookOpen, Award
 } from 'lucide-react';
 
 interface ActiveSheetData {
@@ -30,6 +31,72 @@ interface ActiveSheetData {
   }>;
 }
 
+const CLASSERA_OPTIONS = [
+  { 
+    label: 'ممارس', 
+    dotColor: 'bg-emerald-500', 
+    textColor: 'text-emerald-700', 
+    activeBg: 'bg-emerald-50', 
+    hoverBg: 'hover:bg-emerald-50', 
+    borderColor: 'border-emerald-300', 
+    ringColor: 'ring-emerald-400',
+    badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300' 
+  },
+  { 
+    label: 'متقدم', 
+    dotColor: 'bg-blue-500', 
+    textColor: 'text-blue-700', 
+    activeBg: 'bg-blue-50', 
+    hoverBg: 'hover:bg-blue-50', 
+    borderColor: 'border-blue-300', 
+    ringColor: 'ring-blue-400',
+    badgeClass: 'bg-blue-100 text-blue-800 border-blue-300' 
+  },
+  { 
+    label: 'خبير', 
+    dotColor: 'bg-purple-500', 
+    textColor: 'text-purple-700', 
+    activeBg: 'bg-purple-50', 
+    hoverBg: 'hover:bg-purple-50', 
+    borderColor: 'border-purple-300', 
+    ringColor: 'ring-purple-400',
+    badgeClass: 'bg-purple-100 text-purple-800 border-purple-300' 
+  },
+  { 
+    label: 'محترف', 
+    dotColor: 'bg-amber-500', 
+    textColor: 'text-amber-700', 
+    activeBg: 'bg-amber-50', 
+    hoverBg: 'hover:bg-amber-50', 
+    borderColor: 'border-amber-300', 
+    ringColor: 'ring-amber-400',
+    badgeClass: 'bg-amber-100 text-amber-800 border-amber-300' 
+  }
+];
+
+const SECTION_OPTIONS = [
+  { label: 'بنين', icon: '👦', dotColor: 'bg-blue-500', textColor: 'text-blue-700', activeBg: 'bg-blue-50', hoverBg: 'hover:bg-blue-50', borderColor: 'border-blue-300', ringColor: 'ring-blue-400', badgeClass: 'bg-blue-100 text-blue-800 border-blue-300' },
+  { label: 'بنات', icon: '👧', dotColor: 'bg-pink-500', textColor: 'text-pink-700', activeBg: 'bg-pink-50', hoverBg: 'hover:bg-pink-50', borderColor: 'border-pink-300', ringColor: 'ring-pink-400', badgeClass: 'bg-pink-100 text-pink-800 border-pink-300' },
+];
+
+const STAGE_OPTIONS = [
+  { label: 'KG1', dotColor: 'bg-fuchsia-500', textColor: 'text-fuchsia-700', activeBg: 'bg-fuchsia-50', hoverBg: 'hover:bg-fuchsia-50', borderColor: 'border-fuchsia-300', ringColor: 'ring-fuchsia-400', badgeClass: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-300' },
+  { label: 'KG2', dotColor: 'bg-purple-500', textColor: 'text-purple-700', activeBg: 'bg-purple-50', hoverBg: 'hover:bg-purple-50', borderColor: 'border-purple-300', ringColor: 'ring-purple-400', badgeClass: 'bg-purple-100 text-purple-800 border-purple-300' },
+  { label: 'إبتدائي', dotColor: 'bg-emerald-500', textColor: 'text-emerald-700', activeBg: 'bg-emerald-50', hoverBg: 'hover:bg-emerald-50', borderColor: 'border-emerald-300', ringColor: 'ring-emerald-400', badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
+  { label: 'متوسط', dotColor: 'bg-amber-500', textColor: 'text-amber-700', activeBg: 'bg-amber-50', hoverBg: 'hover:bg-amber-50', borderColor: 'border-amber-300', ringColor: 'ring-amber-400', badgeClass: 'bg-amber-100 text-amber-800 border-amber-300' },
+  { label: 'ثانوي', dotColor: 'bg-blue-500', textColor: 'text-blue-700', activeBg: 'bg-blue-50', hoverBg: 'hover:bg-blue-50', borderColor: 'border-blue-300', ringColor: 'ring-blue-400', badgeClass: 'bg-blue-100 text-blue-800 border-blue-300' },
+];
+
+const QUOTA_OPTIONS = Array.from({ length: 35 }, (_, i) => i + 1);
+
+const NATIONALITY_OPTIONS = [
+  { label: 'سعودي', flag: '🇸🇦', dotColor: 'bg-emerald-500', textColor: 'text-emerald-700', activeBg: 'bg-emerald-50', hoverBg: 'hover:bg-emerald-50', borderColor: 'border-emerald-300', ringColor: 'ring-emerald-400', badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
+  { label: 'مصري', flag: '🇪🇬', dotColor: 'bg-amber-500', textColor: 'text-amber-700', activeBg: 'bg-amber-50', hoverBg: 'hover:bg-amber-50', borderColor: 'border-amber-300', ringColor: 'ring-amber-400', badgeClass: 'bg-amber-100 text-amber-800 border-amber-300' },
+  { label: 'سوري', flag: '🇸🇾', dotColor: 'bg-blue-500', textColor: 'text-blue-700', activeBg: 'bg-blue-50', hoverBg: 'hover:bg-blue-50', borderColor: 'border-blue-300', ringColor: 'ring-blue-400', badgeClass: 'bg-blue-100 text-blue-800 border-blue-300' },
+  { label: 'سوداني', flag: '🇸🇩', dotColor: 'bg-orange-500', textColor: 'text-orange-700', activeBg: 'bg-orange-50', hoverBg: 'hover:bg-orange-50', borderColor: 'border-orange-300', ringColor: 'ring-orange-400', badgeClass: 'bg-orange-100 text-orange-800 border-orange-300' },
+  { label: 'أردني', flag: '🇯🇴', dotColor: 'bg-red-500', textColor: 'text-red-700', activeBg: 'bg-red-50', hoverBg: 'hover:bg-red-50', borderColor: 'border-red-300', ringColor: 'ring-red-400', badgeClass: 'bg-red-100 text-red-800 border-red-300' },
+];
+
 const PALETTE = [
   '#ffffff', '#f8fafc', '#f1f5f9', '#e2e8f0', '#cbd5e1', '#94a3b8', '#64748b', '#475569', '#334155', '#1e293b', '#0f172a', // رمادي
   '#fca5a5', '#f87171', '#ef4444', '#dc2626', '#991b1b', // أحمر
@@ -42,6 +109,281 @@ const PALETTE = [
   '#c4b5fd', '#a78bfa', '#8b5cf6', '#7c3aed', '#4c1d95', // بنفسجي
   '#f9a8d4', '#f472b6', '#ec4899', '#db2777', '#831843'  // وردي
 ];
+
+const cleanAndDeduplicateOptions = (items: string[], blacklist: string[] = []): string[] => {
+  const normalize = (s: string) => {
+    let t = s
+      .trim()
+      .replace(/[أإآٱ]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/[ىيئ]/g, 'ي')
+      .replace(/[ـ]/g, '')
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+    
+    // Normalize common dialect / spelling variations
+    if (t === 'تربيه رياضه' || t === 'تربيه رياضيه') t = 'تربيه رياضيه';
+    if (t === 'حاسب' || t === 'حاسب الي') t = 'حاسب الي';
+    if (t === 'اصول دين' || t === 'اصول دين ودعوه') t = 'اصول دين ودعوه';
+    if (t === 'خدمه اجتماعيه' || t === 'خدمه اجتماعه') t = 'خدمه اجتماعيه';
+    if (t === 'دراسات اسلاميه' || t === 'دراسات اسلامية') t = 'دراسات اسلاميه';
+    if (t === 'بكالوريوس التربيه النوعيه' || t === 'بكالوريوس تربيه نوعيه') t = 'بكالوريوس تربيه نوعيه';
+    return t;
+  };
+
+  const canonicalMap = new Map<string, string>();
+
+  for (const raw of items) {
+    if (!raw) continue;
+    const str = String(raw).trim();
+    if (!str || str.length < 2) continue;
+    if (/^\d+$/.test(str)) continue;
+    if (blacklist.some(b => str.includes(b))) continue;
+
+    const norm = normalize(str);
+    if (!canonicalMap.has(norm)) {
+      canonicalMap.set(norm, str);
+    } else {
+      const current = canonicalMap.get(norm)!;
+      // Prefer version with proper Arabic orthography (hamza, taa marbuta)
+      const scoreStr = (str.match(/[أإآة]/g) || []).length;
+      const scoreCur = (current.match(/[أإآة]/g) || []).length;
+      if (scoreStr > scoreCur) {
+        canonicalMap.set(norm, str);
+      }
+    }
+  }
+
+  return Array.from(canonicalMap.values()).sort((a, b) => a.localeCompare(b, 'ar'));
+};
+
+function InCellEmailEditor({
+  initialValue,
+  onSave,
+  onCancel
+}: {
+  initialValue: string;
+  onSave: (val: string) => void;
+  onCancel: () => void;
+}) {
+  const [val, setVal] = useState(initialValue);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isReadyRef = useRef(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      isReadyRef.current = true;
+      if (inputRef.current) {
+        inputRef.current.focus();
+        const len = inputRef.current.value.length;
+        inputRef.current.setSelectionRange(len, len);
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let text = e.target.value;
+    if (text.includes('@') && !text.includes('@altanmiyah.edu.sa')) {
+      const atIdx = text.lastIndexOf('@');
+      const prefix = text.slice(0, atIdx);
+      text = `${prefix}@altanmiyah.edu.sa`;
+    }
+    setVal(text);
+  };
+
+  const handleBlur = (e: React.FocusEvent) => {
+    if (!isReadyRef.current) return;
+    const related = e.relatedTarget as Node | null;
+    if (containerRef.current && related && containerRef.current.contains(related)) {
+      return;
+    }
+    onSave(val);
+  };
+
+  return (
+    <div 
+      ref={containerRef}
+      className="relative w-full min-w-[210px] flex items-center justify-center p-1 z-50 bg-white"
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+    >
+      <input
+        ref={inputRef}
+        type="text"
+        dir="ltr"
+        value={val}
+        onChange={handleChange}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            onSave(val);
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            onCancel();
+          }
+        }}
+        onBlur={handleBlur}
+        className="w-full text-left font-mono px-2.5 py-1 text-xs md:text-sm font-bold bg-white text-blue-900 border-2 border-blue-600 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+        placeholder="user@altanmiyah.edu.sa"
+      />
+      {/* Autocomplete helper pill */}
+      <div 
+        className="email-helper-btn absolute top-full mt-1.5 flex items-center gap-1.5 bg-white border border-blue-300 rounded-xl shadow-2xl p-1.5 z-50 text-xs font-sans animate-in fade-in zoom-in-95"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
+        <button
+          type="button"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            let prefix = val.trim();
+            if (prefix.includes('@')) {
+              prefix = prefix.split('@')[0];
+            }
+            const full = `${prefix}@altanmiyah.edu.sa`;
+            setVal(full);
+            onSave(full);
+          }}
+          className="px-2.5 py-1 text-xs font-black bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 flex items-center gap-1 transition-colors cursor-pointer"
+        >
+          <Mail size={13} className="text-blue-500" />
+          <span>إكمال: @altanmiyah.edu.sa</span>
+        </button>
+        <button
+          type="button"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSave(val);
+          }}
+          className="p-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors cursor-pointer"
+          title="حفظ التعديل"
+        >
+          <Check size={14} />
+        </button>
+        <button
+          type="button"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onCancel();
+          }}
+          className="p-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors cursor-pointer"
+          title="إلغاء"
+        >
+          <X size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function InCellGeneralEditor({
+  initialValue,
+  onSave,
+  onCancel,
+  bold,
+  align
+}: {
+  initialValue: string;
+  onSave: (val: string) => void;
+  onCancel: () => void;
+  bold?: boolean;
+  align?: string;
+}) {
+  const [val, setVal] = useState(initialValue);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const isReadyRef = useRef(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      isReadyRef.current = true;
+      if (inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleBlur = (e: React.FocusEvent) => {
+    if (!isReadyRef.current) return;
+    const related = e.relatedTarget as HTMLElement | null;
+    if (related && related.closest('.in-cell-general-editor')) return;
+    onSave(val);
+  };
+
+  return (
+    <div 
+      className="in-cell-general-editor relative w-full h-full min-h-[36px] flex items-center justify-center p-0.5 z-50 bg-white rounded"
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+    >
+      <div className="relative w-full flex items-center">
+        <input
+          ref={inputRef}
+          type="text"
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onSave(val);
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              onCancel();
+            }
+          }}
+          onBlur={handleBlur}
+          style={{
+            fontWeight: bold ? '900' : undefined,
+            textAlign: (align as any) || undefined
+          }}
+          className="w-full text-center px-2 py-1.5 text-xs md:text-sm font-bold bg-white text-slate-900 border-2 border-blue-600 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+        {/* Floating action buttons to confirm or cancel */}
+        <div 
+          className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white border border-slate-300 shadow-md rounded-md px-1.5 py-0.5 z-50 animate-in fade-in"
+          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onSave(val);
+            }}
+            className="p-1 hover:bg-emerald-50 text-emerald-600 rounded cursor-pointer"
+            title="حفظ التعديل (Enter)"
+          >
+            <Check size={13} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onCancel();
+            }}
+            className="p-1 hover:bg-rose-50 text-rose-600 rounded cursor-pointer"
+            title="إلغاء (Escape)"
+          >
+            <X size={13} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   // Authentication states
@@ -126,22 +468,41 @@ function App() {
   const [dragSnapshot, setDragSnapshot] = useState<Set<string>>(new Set());
   const [showShapesMenu, setShowShapesMenu] = useState(false);
   const [showBorderMenu, setShowBorderMenu] = useState(false);
+  const [classeraPicker, setClasseraPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
+  const [licensePicker, setLicensePicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
+  const [sectionPicker, setSectionPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
+  const [stagePicker, setStagePicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
+  const [quotaPicker, setQuotaPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
+  const [nationalityPicker, setNationalityPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
+  const [specializationPicker, setSpecializationPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
+  const [qualificationPicker, setQualificationPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
+  const [editingCell, setEditingCell] = useState<{ r: number, c: number, value: string } | null>(null);
+  const [customNationalityInput, setCustomNationalityInput] = useState('');
+  const [customSpecializationInput, setCustomSpecializationInput] = useState('');
+  const [customQualificationInput, setCustomQualificationInput] = useState('');
+  const [pickerSearchQuery, setPickerSearchQuery] = useState('');
   const [activeReportCategory, setActiveReportCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sheetSearchQuery, setSheetSearchQuery] = useState('');
 
   const [resizing, setResizing] = useState<{type: 'col' | 'row', index: number, startPos: number, startSize: number} | null>(null);
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isToolbarCollapsed, setIsToolbarCollapsed] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const tableContentRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const scrollAnimationRef = useRef<number>(0);
   const lastMousePosRef = useRef({ x: 0, y: 0 });
   const dragStartRef = useRef(dragStart);
   const dragSnapshotRef = useRef(dragSnapshot);
+  const selectedCellsRef = useRef(selectedCells);
+  const activeSheetRef = useRef(activeSheet);
 
   useEffect(() => { dragStartRef.current = dragStart; }, [dragStart]);
   useEffect(() => { dragSnapshotRef.current = dragSnapshot; }, [dragSnapshot]);
+  useEffect(() => { selectedCellsRef.current = selectedCells; }, [selectedCells]);
+  useEffect(() => { activeSheetRef.current = activeSheet; }, [activeSheet]);
 
   const autoScroll = () => {
     if (isDraggingRef.current && scrollContainerRef.current) {
@@ -232,8 +593,9 @@ function App() {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+
       if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'z' || e.code === 'KeyZ')) {
-        if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
         e.preventDefault();
         setHistory(prev => {
           if (prev.length > 0) {
@@ -243,6 +605,50 @@ function App() {
           }
           return prev;
         });
+      } else if (e.key === 'Enter' || e.key === 'F2') {
+        const curSelected = selectedCellsRef.current;
+        const curSheet = activeSheetRef.current;
+        if (curSelected.size === 1 && curSheet) {
+          const firstKey = String(Array.from(curSelected)[0] || '');
+          const [r, c] = firstKey.split(',').map(Number);
+          e.preventDefault();
+          closeAllPickers();
+          setEditingCell({
+            r,
+            c,
+            value: String(curSheet.data[r]?.[c] ?? '')
+          });
+        }
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        const curSelected = selectedCellsRef.current;
+        const curSheet = activeSheetRef.current;
+        if (curSelected.size > 0 && curSheet) {
+          e.preventDefault();
+          setHistory(prev => [...prev, curSheet]);
+          const newData = curSheet.data.map(row => [...row]);
+          curSelected.forEach(key => {
+            const [r, c] = String(key).split(',').map(Number);
+            if (newData[r] && newData[r][c] !== undefined) {
+              newData[r][c] = '';
+            }
+          });
+          const updated = { ...curSheet, data: newData };
+          setActiveSheet(updated);
+          setModifiedSheets(prev => ({ ...prev, [curSheet.title]: updated }));
+        }
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const curSelected = selectedCellsRef.current;
+        const curSheet = activeSheetRef.current;
+        if (curSelected.size === 1 && curSheet) {
+          const firstKey = String(Array.from(curSelected)[0] || '');
+          const [r, c] = firstKey.split(',').map(Number);
+          closeAllPickers();
+          setEditingCell({
+            r,
+            c,
+            value: e.key
+          });
+        }
       }
     };
     
@@ -323,12 +729,27 @@ function App() {
   const loadSheetData = async (title: string, sheetName: string) => {
     // التحقق مما إذا كان الشيت معدل مسبقاً ومحفوظ محلياً
     if (modifiedSheets[title]) {
-      setHistory([]);
-      setSelectedCells(new Set());
-      setMenuRow(null);
-      setMenuCol(null);
-      setActiveSheet({ ...modifiedSheets[title] }); // استعادة النسخة المعدلة
-      return;
+      const cached = modifiedSheets[title];
+      const hasFemale = cached.data?.some((r: any[]) => r && r.some((c: any) => String(c).includes('أثير محمد بن سعد الحربي')));
+      const hasSectionCol = cached.data?.[2]?.some((c: any) => String(c).trim() === 'القسم');
+      const isTeacherCard = title === 'بيانات الكادر التعليمي' || title === 'بيانات المعلمين' || title === 'المعلمين';
+      const isTeacherValid = !isTeacherCard || (hasFemale && hasSectionCol);
+
+      const hasAdminData = cached.data?.some((r: any[]) => r && r.some((c: any) => String(c).includes('عمرو عبدالتواب عطا'))) &&
+                           cached.data?.some((r: any[]) => r && r.some((c: any) => String(c).includes('ريما فهد القحطاني')));
+      const isAdminCard = title === 'بيانات الكادر الإداري' || title === 'ادارة المجمع' || title === 'إدارة المجمع';
+      const isAdminValid = !isAdminCard || hasAdminData;
+
+      if (isTeacherValid && isAdminValid) {
+        setHistory([]);
+        setSelectedCells(new Set());
+        setMenuRow(null);
+        setMenuCol(null);
+        setZoom(1);
+        setSheetSearchQuery('');
+        setActiveSheet({ ...cached });
+        return;
+      }
     }
 
     try {
@@ -359,13 +780,218 @@ function App() {
         return newRow;
       });
 
-      const merges = worksheet['!merges'] || [];
+      let merges = [...(worksheet['!merges'] || [])];
+
+      // التأكد من تضمين بيانات المعلمات تحت بيانات المعلمين في نفس الجدول (الكادر التعليمي)
+      if ((title === 'بيانات الكادر التعليمي' || title === 'بيانات المعلمين' || sheetName === 'المعلمين') && workbook.Sheets['المعلمات']) {
+        const alreadyHasFemale = normalizedData.some(row => 
+          row && row.some(cell => String(cell).includes('أثير محمد بن سعد الحربي'))
+        );
+
+        if (!alreadyHasFemale) {
+          const wsF = workbook.Sheets['المعلمات'];
+          const rawDataF = XLSX.utils.sheet_to_json(wsF, { header: 1, defval: "", raw: false }) as any[][];
+          const femaleTeachers = rawDataF.slice(3, 28);
+
+          const femaleHeaderRow = new Array(maxCols).fill("");
+          femaleHeaderRow[0] = "";
+          femaleHeaderRow[1] = "معلمات";
+          femaleHeaderRow[2] = "بيانات  المعلمات ( جميع المراحل )";
+
+          const mappedFemale = femaleTeachers.map((row, idx) => {
+            const newRow = new Array(maxCols).fill("");
+            newRow[0] = row[0] || (idx + 1);
+            newRow[1] = row[1];
+            newRow[2] = row[2];
+            newRow[3] = row[3];
+            newRow[4] = row[4];
+            newRow[5] = row[5];
+            newRow[6] = row[6];
+            newRow[7] = row[7];
+            newRow[8] = row[8];
+            newRow[9] = row[9];
+            newRow[10] = row[10];
+            newRow[11] = "";
+            newRow[12] = row[11];
+            newRow[13] = "";
+            newRow[14] = row[12];
+            return newRow;
+          });
+
+          let insertIdx = normalizedData.findIndex((r, idx) => idx > 3 && (!r[2] || String(r[6]).includes('المرحلة') || String(r[7]).includes('المرحلة')));
+          if (insertIdx === -1) insertIdx = normalizedData.length;
+
+          // إضافة دمج شريط عنوان المعلمات
+          merges.push({
+            s: { c: 2, r: insertIdx },
+            e: { c: Math.min(14, maxCols - 1), r: insertIdx }
+          });
+
+          normalizedData.splice(insertIdx, 0, femaleHeaderRow, ...mappedFemale);
+        }
+      }
+
+      // التأكد من وجود عامود "القسم" بعد عامود الاسم في الكادر التعليمي
+      if (title === 'بيانات الكادر التعليمي' || title === 'بيانات المعلمين' || sheetName === 'المعلمين') {
+        const headerRowIdx = 2;
+        if (normalizedData[headerRowIdx]) {
+          const hasSectionCol = normalizedData[headerRowIdx].some(c => String(c || '').trim() === 'القسم');
+          if (!hasSectionCol) {
+            let nameColIdx = normalizedData[headerRowIdx].findIndex(c => String(c || '').includes('اسم'));
+            if (nameColIdx === -1) nameColIdx = 2;
+            const insertColIdx = nameColIdx + 1; // مباشرة بعد عامود الاسم
+
+            // تحديث الدمج للأعمدة التي بعد عامود الاسم
+            merges = merges.map(m => {
+              let s = { ...m.s };
+              let e = { ...m.e };
+              if (s.c >= insertColIdx) s.c++;
+              if (e.c >= insertColIdx) e.c++;
+              return { s, e };
+            });
+
+            // تحديد مؤشر شريط عنوان المعلمات إن وُجد
+            const femaleHeaderIndex = normalizedData.findIndex(r => r && (String(r[1] || '') === 'معلمات' || String(r[2] || '').includes('بيانات  المعلمات')));
+
+            normalizedData.forEach((row, rIdx) => {
+              if (rIdx < headerRowIdx) {
+                row.splice(insertColIdx, 0, "");
+              } else if (rIdx === headerRowIdx) {
+                row.splice(insertColIdx, 0, "القسم");
+              } else if (femaleHeaderIndex !== -1 && rIdx === femaleHeaderIndex) {
+                row.splice(insertColIdx, 0, "");
+              } else {
+                const hasRowData = row.some((c, idx) => idx !== 0 && c !== "");
+                if (!hasRowData) {
+                  row.splice(insertColIdx, 0, "");
+                } else if (femaleHeaderIndex !== -1 && rIdx > femaleHeaderIndex) {
+                  row.splice(insertColIdx, 0, "بنات");
+                } else {
+                  row.splice(insertColIdx, 0, "بنين");
+                }
+              }
+            });
+          }
+        }
+      }
+
+      // التأكد من تضمين بيانات الإداريين والإداريات تحت بيانات إدارة المجمع في نفس الجدول (الكادر الإداري)
+      if ((title === 'بيانات الكادر الإداري' || title === 'ادارة المجمع' || title === 'إدارة المجمع' || sheetName === 'إدارة المجمع') && (workbook.Sheets['اداريين دار القلم'] || workbook.Sheets['اداريات دار القلم'])) {
+        const alreadyHasAdmins = normalizedData.some(row => 
+          row && row.some(cell => String(cell).includes('عمرو عبدالتواب عطا'))
+        );
+
+        if (!alreadyHasAdmins) {
+          // تحديث عنوان الشيت الرئيسي في الصف الأول ورؤوس الأعمدة
+          if (normalizedData[0]) {
+            normalizedData[0][0] = "";
+            normalizedData[0][1] = "بيانات الكادر الإداري";
+          }
+          if (normalizedData[1]) {
+            if (normalizedData[1][1] === "اسم الموظفة رباعي") {
+              normalizedData[1][1] = "اسم الموظف / الموظفة رباعي";
+            }
+            if (normalizedData[1][10] === "رخصة") {
+              normalizedData[1][10] = "الرخصة المهنية";
+            }
+          }
+
+          // تصفية صفوف إدارة المجمع لإزالة أي صفوف فارغة في النهاية
+          const mgmtRows = normalizedData.slice(2).filter(row => row.some(c => c !== ""));
+          
+          // شريط عنوان إدارة المجمع
+          const mgmtHeaderRow = new Array(maxCols).fill("");
+          mgmtHeaderRow[0] = "إدارة";
+          mgmtHeaderRow[1] = "إدارة المجمع";
+
+          const mergedRows: any[][] = [
+            normalizedData[0],
+            normalizedData[1],
+            mgmtHeaderRow,
+            ...mgmtRows
+          ];
+
+          // إعادة بناء الدمج
+          const newMerges: XLSX.Range[] = [
+            { s: { c: 1, r: 0 }, e: { c: Math.min(10, maxCols - 1), r: 0 } },
+            { s: { c: 1, r: 2 }, e: { c: Math.min(10, maxCols - 1), r: 2 } }
+          ];
+
+          // 1. إضافة بيانات الإداريين (قسم البنين)
+          if (workbook.Sheets['اداريين دار القلم']) {
+            const wsM = workbook.Sheets['اداريين دار القلم'];
+            const rawM = XLSX.utils.sheet_to_json(wsM, { header: 1, defval: "", raw: false }) as any[][];
+            const maleAdmins = rawM.filter((r, idx) => {
+              const jobNum = r[1];
+              const name = r[2];
+              return (typeof jobNum === "number" || (typeof jobNum === "string" && /^\d+$/.test(jobNum.trim()))) && name && typeof name === "string" && idx < 22;
+            });
+
+            const maleHeaderRow = new Array(maxCols).fill("");
+            maleHeaderRow[0] = "إداريين";
+            maleHeaderRow[1] = "بيانات الإداريين (قسم البنين)";
+
+            const mappedMale = maleAdmins.map(row => {
+              const newRow = new Array(maxCols).fill("");
+              for (let c = 0; c <= 10; c++) {
+                newRow[c] = row[c + 1] !== undefined ? row[c + 1] : "";
+              }
+              return newRow;
+            });
+
+            const maleHeaderIdx = mergedRows.length;
+            newMerges.push({
+              s: { c: 1, r: maleHeaderIdx },
+              e: { c: Math.min(10, maxCols - 1), r: maleHeaderIdx }
+            });
+
+            mergedRows.push(maleHeaderRow, ...mappedMale);
+          }
+
+          // 2. إضافة بيانات الإداريات (قسم البنات)
+          if (workbook.Sheets['اداريات دار القلم']) {
+            const wsF = workbook.Sheets['اداريات دار القلم'];
+            const rawF = XLSX.utils.sheet_to_json(wsF, { header: 1, defval: "", raw: false }) as any[][];
+            const femaleAdmins = rawF.filter((r, idx) => {
+              const jobNum = r[1];
+              const name = r[2];
+              return (typeof jobNum === "number" || (typeof jobNum === "string" && /^\d+$/.test(jobNum.trim()))) && name && typeof name === "string" && idx < 25;
+            });
+
+            const femaleHeaderRow = new Array(maxCols).fill("");
+            femaleHeaderRow[0] = "إداريات";
+            femaleHeaderRow[1] = "بيانات الإداريات (قسم البنات)";
+
+            const mappedFemale = femaleAdmins.map(row => {
+              const newRow = new Array(maxCols).fill("");
+              for (let c = 0; c <= 10; c++) {
+                newRow[c] = row[c + 1] !== undefined ? row[c + 1] : "";
+              }
+              return newRow;
+            });
+
+            const femaleHeaderIdx = mergedRows.length;
+            newMerges.push({
+              s: { c: 1, r: femaleHeaderIdx },
+              e: { c: Math.min(10, maxCols - 1), r: femaleHeaderIdx }
+            });
+
+            mergedRows.push(femaleHeaderRow, ...mappedFemale);
+          }
+
+          normalizedData.length = 0;
+          normalizedData.push(...mergedRows);
+          merges = newMerges;
+        }
+      }
       
       // تصفير جميع الحالات عند فتح شيت جديد
       setHistory([]);
       setSelectedCells(new Set());
       setMenuRow(null);
       setMenuCol(null);
+      setZoom(1);
+      setSheetSearchQuery('');
       setActiveSheet({ title, data: normalizedData, merges, colors: {} });
     } catch (error) {
       console.error("Error loading Excel file:", error);
@@ -463,6 +1089,656 @@ function App() {
     }
   };
 
+  const isTeacherSheet = activeSheet?.title === 'بيانات الكادر التعليمي' || activeSheet?.title === 'بيانات المعلمين' || activeSheet?.title === 'المعلمين';
+
+  const classeraColIndex = React.useMemo(() => {
+    if (!activeSheet) return -1;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row) {
+        const idx = row.findIndex(c => String(c || '').trim() === 'كلاسيرا' || String(c || '').includes('كلاسيرا'));
+        if (idx !== -1) return idx;
+      }
+    }
+    if (isTeacherSheet) {
+      const hasSec = activeSheet.data?.[2]?.some(c => String(c || '').trim() === 'القسم');
+      return hasSec ? 14 : 13;
+    }
+    return -1;
+  }, [activeSheet, isTeacherSheet]);
+
+  const isClasseraCell = (rIdx: number, cIdx: number) => {
+    if (!activeSheet || classeraColIndex === -1 || cIdx !== classeraColIndex) return false;
+    if (rIdx < 3) return false;
+    const row = activeSheet.data[rIdx];
+    if (!row) return false;
+    const hasRowContent = row.some((c, idx) => idx !== cIdx && c !== "" && c != null);
+    if (!hasRowContent) return false;
+    const rowStr = row.map(c => String(c || "")).join(" ");
+    if (rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين")) {
+      return false;
+    }
+    return true;
+  };
+
+  const licenseColIndex = React.useMemo(() => {
+    if (!activeSheet) return -1;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row) {
+        const idx = row.findIndex(c => {
+          const s = String(c || '').trim();
+          return s === 'الرخصة المهنية' || s === 'رخصة مهنية' || s === 'الرخصة' || s.includes('الرخصة المهنية') || s.includes('الرخصة');
+        });
+        if (idx !== -1) return idx;
+      }
+    }
+    if (isTeacherSheet) {
+      const hasSec = activeSheet.data?.[2]?.some(c => String(c || '').trim() === 'القسم');
+      return hasSec ? 13 : 12;
+    }
+    return -1;
+  }, [activeSheet, isTeacherSheet]);
+
+  const isLicenseCell = (rIdx: number, cIdx: number) => {
+    if (!activeSheet || licenseColIndex === -1 || cIdx !== licenseColIndex) return false;
+    if (rIdx < 3) return false;
+    const row = activeSheet.data[rIdx];
+    if (!row) return false;
+    const hasRowContent = row.some((c, idx) => idx !== cIdx && c !== "" && c != null);
+    if (!hasRowContent) return false;
+    const rowStr = row.map(c => String(c || "")).join(" ");
+    if (rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين")) {
+      return false;
+    }
+    return true;
+  };
+
+  const handleSelectLicenseOption = (rIndex: number, cIndex: number, option: string | number) => {
+    if (!activeSheet) return;
+    setHistory(prev => [...prev, activeSheet]);
+
+    const newData = activeSheet.data.map(row => [...row]);
+    const targetKeys = new Set<string>();
+    if (selectedCells.has(`${rIndex},${cIndex}`)) {
+      selectedCells.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        if (c === cIndex && isLicenseCell(r, c)) {
+          targetKeys.add(key);
+        }
+      });
+    }
+    if (targetKeys.size === 0) {
+      targetKeys.add(`${rIndex},${cIndex}`);
+    }
+
+    targetKeys.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (newData[r] && newData[r][c] !== undefined) {
+        newData[r][c] = option;
+      }
+    });
+
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+    setLicensePicker(null);
+  };
+
+  const handleSelectClasseraOption = (rIndex: number, cIndex: number, option: string) => {
+    if (!activeSheet) return;
+    setHistory(prev => [...prev, activeSheet]);
+
+    const newData = activeSheet.data.map(row => [...row]);
+    const targetKeys = new Set<string>();
+    if (selectedCells.has(`${rIndex},${cIndex}`)) {
+      selectedCells.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        if (c === cIndex && isClasseraCell(r, c)) {
+          targetKeys.add(key);
+        }
+      });
+    }
+    if (targetKeys.size === 0) {
+      targetKeys.add(`${rIndex},${cIndex}`);
+    }
+
+    targetKeys.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (newData[r] && newData[r][c] !== undefined) {
+        newData[r][c] = option;
+      }
+    });
+
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+    setClasseraPicker(null);
+  };
+
+  const applyClasseraToSelection = (option: string) => {
+    if (!activeSheet || selectedCells.size === 0) return;
+    setHistory(prev => [...prev, activeSheet]);
+
+    const newData = activeSheet.data.map(row => [...row]);
+    selectedCells.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (c === classeraColIndex && isClasseraCell(r, c) && newData[r]) {
+        newData[r][c] = option;
+      }
+    });
+
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+  };
+
+  const sectionColIndex = React.useMemo(() => {
+    if (!activeSheet) return -1;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row) {
+        const idx = row.findIndex(c => String(c || '').trim() === 'القسم' || String(c || '').includes('القسم'));
+        if (idx !== -1) return idx;
+      }
+    }
+    return -1;
+  }, [activeSheet]);
+
+  const isSectionCell = (rIdx: number, cIdx: number) => {
+    if (!activeSheet || sectionColIndex === -1 || cIdx !== sectionColIndex) return false;
+    if (rIdx < 3) return false;
+    const row = activeSheet.data[rIdx];
+    if (!row) return false;
+    const hasRowContent = row.some((c, idx) => idx !== cIdx && c !== "" && c != null);
+    if (!hasRowContent) return false;
+    const rowStr = row.map(c => String(c || "")).join(" ");
+    if (rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين")) {
+      return false;
+    }
+    return true;
+  };
+
+  const handleSelectSectionOption = (rIndex: number, cIndex: number, option: string) => {
+    if (!activeSheet) return;
+    setHistory(prev => [...prev, activeSheet]);
+
+    const newData = activeSheet.data.map(row => [...row]);
+    const targetKeys = new Set<string>();
+    if (selectedCells.has(`${rIndex},${cIndex}`)) {
+      selectedCells.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        if (c === cIndex && isSectionCell(r, c)) {
+          targetKeys.add(key);
+        }
+      });
+    }
+    if (targetKeys.size === 0) {
+      targetKeys.add(`${rIndex},${cIndex}`);
+    }
+
+    targetKeys.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (newData[r] && newData[r][c] !== undefined) {
+        newData[r][c] = option;
+      }
+    });
+
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+    setSectionPicker(null);
+  };
+
+  const stageColIndex = React.useMemo(() => {
+    if (!activeSheet) return -1;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row) {
+        const idx = row.findIndex(c => {
+          const s = String(c || '').trim();
+          return s === 'المرحلة' || s.includes('المرحلة');
+        });
+        if (idx !== -1) return idx;
+      }
+    }
+    return -1;
+  }, [activeSheet]);
+
+  const isStageCell = (rIdx: number, cIdx: number) => {
+    if (!activeSheet || stageColIndex === -1 || cIdx !== stageColIndex) return false;
+    if (rIdx < 3) return false;
+    const row = activeSheet.data[rIdx];
+    if (!row) return false;
+    const hasRowContent = row.some((c, idx) => idx !== cIdx && c !== "" && c != null);
+    if (!hasRowContent) return false;
+    const rowStr = row.map(c => String(c || "")).join(" ");
+    if (rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين")) {
+      return false;
+    }
+    return true;
+  };
+
+  const handleSelectStageOption = (rIndex: number, cIndex: number, option: string) => {
+    if (!activeSheet) return;
+    setHistory(prev => [...prev, activeSheet]);
+
+    const newData = activeSheet.data.map(row => [...row]);
+    const targetKeys = new Set<string>();
+    if (selectedCells.has(`${rIndex},${cIndex}`)) {
+      selectedCells.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        if (c === cIndex && isStageCell(r, c)) {
+          targetKeys.add(key);
+        }
+      });
+    }
+    if (targetKeys.size === 0) {
+      targetKeys.add(`${rIndex},${cIndex}`);
+    }
+
+    targetKeys.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (newData[r] && newData[r][c] !== undefined) {
+        newData[r][c] = option;
+      }
+    });
+
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+    setStagePicker(null);
+  };
+
+  const quotaColIndex = React.useMemo(() => {
+    if (!activeSheet) return -1;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row) {
+        const idx = row.findIndex(c => {
+          const s = String(c || '').trim();
+          return s === 'نصاب المعلم' || s === 'النصاب' || s.includes('نصاب');
+        });
+        if (idx !== -1) return idx;
+      }
+    }
+    return -1;
+  }, [activeSheet]);
+
+  const isQuotaCell = (rIdx: number, cIdx: number) => {
+    if (!activeSheet || quotaColIndex === -1 || cIdx !== quotaColIndex) return false;
+    if (rIdx < 3) return false;
+    const row = activeSheet.data[rIdx];
+    if (!row) return false;
+    const hasRowContent = row.some((c, idx) => idx !== cIdx && c !== "" && c != null);
+    if (!hasRowContent) return false;
+    const rowStr = row.map(c => String(c || "")).join(" ");
+    if (rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين")) {
+      return false;
+    }
+    return true;
+  };
+
+  const handleSelectQuotaOption = (rIndex: number, cIndex: number, option: number | string) => {
+    if (!activeSheet) return;
+    setHistory(prev => [...prev, activeSheet]);
+
+    const newData = activeSheet.data.map(row => [...row]);
+    const targetKeys = new Set<string>();
+    if (selectedCells.has(`${rIndex},${cIndex}`)) {
+      selectedCells.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        if (c === cIndex && isQuotaCell(r, c)) {
+          targetKeys.add(key);
+        }
+      });
+    }
+    if (targetKeys.size === 0) {
+      targetKeys.add(`${rIndex},${cIndex}`);
+    }
+
+    targetKeys.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (newData[r] && newData[r][c] !== undefined) {
+        newData[r][c] = option;
+      }
+    });
+
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+    setQuotaPicker(null);
+  };
+
+  const closeAllPickers = () => {
+    setClasseraPicker(null);
+    setLicensePicker(null);
+    setSectionPicker(null);
+    setStagePicker(null);
+    setQuotaPicker(null);
+    setNationalityPicker(null);
+    setSpecializationPicker(null);
+    setQualificationPicker(null);
+    setCustomNationalityInput('');
+    setCustomSpecializationInput('');
+    setCustomQualificationInput('');
+    setPickerSearchQuery('');
+  };
+
+  const headerRowIndex = React.useMemo(() => {
+    if (!activeSheet) return 2;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row && row.some((c: any) => {
+        const s = String(c || '').trim();
+        return s === 'اسم الموظف رباعي' || s === 'اسم الموظفة رباعي' || s === 'رقم الهوية' || s === 'الإيميل' || s === 'الايميل' || s === 'التخصص' || s === 'الوظيفة ' || s === 'الوظيفة';
+      })) {
+        return r;
+      }
+    }
+    return 2;
+  }, [activeSheet]);
+
+  const commitCellEdit = (r: number, c: number, value: string) => {
+    if (!activeSheet) return;
+    const oldVal = String(activeSheet.data[r]?.[c] ?? '');
+    if (oldVal === value) {
+      setEditingCell(null);
+      return;
+    }
+    setHistory(prev => [...prev, activeSheet]);
+    const newData = activeSheet.data.map(row => [...row]);
+    if (newData[r]) {
+      newData[r][c] = value;
+    }
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+    setEditingCell(null);
+  };
+
+  const nationalityColIndex = React.useMemo(() => {
+    if (!activeSheet) return -1;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row) {
+        const idx = row.findIndex(c => {
+          const s = String(c || '').trim();
+          return s === 'الجنسية' || s.includes('الجنسية');
+        });
+        if (idx !== -1) return idx;
+      }
+    }
+    return -1;
+  }, [activeSheet]);
+
+  const isNationalityCell = (rIdx: number, cIdx: number) => {
+    if (!activeSheet || nationalityColIndex === -1 || cIdx !== nationalityColIndex) return false;
+    if (rIdx <= headerRowIndex) return false;
+    const row = activeSheet.data[rIdx];
+    if (!row) return false;
+    const hasRowContent = row.some((c, idx) => idx !== cIdx && c !== "" && c != null);
+    if (!hasRowContent) return false;
+    const rowStr = row.map(c => String(c || "")).join(" ");
+    if (rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين")) {
+      return false;
+    }
+    return true;
+  };
+
+  const handleSelectNationalityOption = (rIndex: number, cIndex: number, option: string) => {
+    if (!activeSheet) return;
+    setHistory(prev => [...prev, activeSheet]);
+
+    const newData = activeSheet.data.map(row => [...row]);
+    const targetKeys = new Set<string>();
+    if (selectedCells.has(`${rIndex},${cIndex}`)) {
+      selectedCells.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        if (c === cIndex && isNationalityCell(r, c)) {
+          targetKeys.add(key);
+        }
+      });
+    }
+    if (targetKeys.size === 0) {
+      targetKeys.add(`${rIndex},${cIndex}`);
+    }
+
+    targetKeys.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (newData[r] && newData[r][c] !== undefined) {
+        newData[r][c] = option;
+      }
+    });
+
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+    setNationalityPicker(null);
+    setCustomNationalityInput('');
+  };
+
+  const specializationColIndex = React.useMemo(() => {
+    if (!activeSheet) return -1;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row) {
+        const idx = row.findIndex(c => {
+          const s = String(c || '').trim();
+          return s === 'التخصص' || s.includes('التخصص');
+        });
+        if (idx !== -1) return idx;
+      }
+    }
+    return -1;
+  }, [activeSheet]);
+
+  const isSpecializationCell = (rIdx: number, cIdx: number) => {
+    if (!activeSheet || specializationColIndex === -1 || cIdx !== specializationColIndex) return false;
+    if (rIdx <= headerRowIndex) return false;
+    const row = activeSheet.data[rIdx];
+    if (!row) return false;
+    const hasRowContent = row.some((c, idx) => idx !== cIdx && c !== "" && c != null);
+    if (!hasRowContent) return false;
+    const rowStr = row.map(c => String(c || "")).join(" ");
+    if (rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين")) {
+      return false;
+    }
+    return true;
+  };
+
+  const specializationOptions = React.useMemo(() => {
+    if (!activeSheet || specializationColIndex === -1) return [];
+    const items: string[] = [];
+    for (let r = 0; r < activeSheet.data.length; r++) {
+      const row = activeSheet.data[r];
+      if (!row) continue;
+      const val = row[specializationColIndex];
+      if (val) items.push(String(val));
+    }
+    const defaultSpecs = [
+      'لغة عربية', 'رياضيات', 'علوم', 'لغة إنجليزية', 'دراسات إسلامية',
+      'حاسب آلي', 'اجتماعيات', 'تربية بدنية', 'تربية فنية', 'رياض أطفال',
+      'فيزياء', 'كيمياء', 'أحياء', 'علم نفس', 'أصول دين ودعوة', 'شريعة إسلامية',
+      'تكنولوجيا معلومات', 'تربية نوعية', 'علم أرض'
+    ];
+    const blacklist = ['غير سعودي', 'سعودي', 'التخصص', 'المؤهل', 'المعلمين', 'المعلمات', 'الإداريين', 'ادارة', 'بيانات', 'عدد'];
+    return cleanAndDeduplicateOptions([...items, ...defaultSpecs], blacklist);
+  }, [activeSheet, specializationColIndex]);
+
+  const handleSelectSpecializationOption = (rIndex: number, cIndex: number, option: string) => {
+    if (!activeSheet) return;
+    setHistory(prev => [...prev, activeSheet]);
+
+    const newData = activeSheet.data.map(row => [...row]);
+    const targetKeys = new Set<string>();
+    if (selectedCells.has(`${rIndex},${cIndex}`)) {
+      selectedCells.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        if (c === cIndex && isSpecializationCell(r, c)) {
+          targetKeys.add(key);
+        }
+      });
+    }
+    if (targetKeys.size === 0) {
+      targetKeys.add(`${rIndex},${cIndex}`);
+    }
+
+    targetKeys.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (newData[r] && newData[r][c] !== undefined) {
+        newData[r][c] = option;
+      }
+    });
+
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+    setSpecializationPicker(null);
+    setCustomSpecializationInput('');
+    setPickerSearchQuery('');
+  };
+
+  const qualificationColIndex = React.useMemo(() => {
+    if (!activeSheet) return -1;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row) {
+        const idx = row.findIndex(c => {
+          const s = String(c || '').trim();
+          return s === 'المؤهل' || s.includes('المؤهل');
+        });
+        if (idx !== -1) return idx;
+      }
+    }
+    return -1;
+  }, [activeSheet]);
+
+  const isQualificationCell = (rIdx: number, cIdx: number) => {
+    if (!activeSheet || qualificationColIndex === -1 || cIdx !== qualificationColIndex) return false;
+    if (rIdx <= headerRowIndex) return false;
+    const row = activeSheet.data[rIdx];
+    if (!row) return false;
+    const hasRowContent = row.some((c, idx) => idx !== cIdx && c !== "" && c != null);
+    if (!hasRowContent) return false;
+    const rowStr = row.map(c => String(c || "")).join(" ");
+    if (rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين")) {
+      return false;
+    }
+    return true;
+  };
+
+  const qualificationOptions = React.useMemo(() => {
+    if (!activeSheet || qualificationColIndex === -1) return [];
+    const items: string[] = [];
+    for (let r = 0; r < activeSheet.data.length; r++) {
+      const row = activeSheet.data[r];
+      if (!row) continue;
+      const val = row[qualificationColIndex];
+      if (val) items.push(String(val));
+    }
+    const defaultQuals = [
+      'بكالوريوس', 'بكالوريوس تربية', 'بكالوريوس علوم وتربية', 'بكالوريوس خدمة اجتماعية',
+      'بكالوريوس تربية رياضية', 'بكالوريوس تربية نوعية', 'بكالوريوس دار علوم',
+      'ليسانس آداب', 'ليسانس آداب وتربية', 'ليسانس أزهر', 'ماجستير', 'دكتوراه', 'دبلوم'
+    ];
+    const blacklist = ['غير سعودي', 'سعودي', 'التخصص', 'المؤهل', 'المعلمين', 'المعلمات', 'الإداريين', 'ادارة', 'بيانات', 'عدد'];
+    return cleanAndDeduplicateOptions([...items, ...defaultQuals], blacklist);
+  }, [activeSheet, qualificationColIndex]);
+
+  const handleSelectQualificationOption = (rIndex: number, cIndex: number, option: string) => {
+    if (!activeSheet) return;
+    setHistory(prev => [...prev, activeSheet]);
+
+    const newData = activeSheet.data.map(row => [...row]);
+    const targetKeys = new Set<string>();
+    if (selectedCells.has(`${rIndex},${cIndex}`)) {
+      selectedCells.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        if (c === cIndex && isQualificationCell(r, c)) {
+          targetKeys.add(key);
+        }
+      });
+    }
+    if (targetKeys.size === 0) {
+      targetKeys.add(`${rIndex},${cIndex}`);
+    }
+
+    targetKeys.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (newData[r] && newData[r][c] !== undefined) {
+        newData[r][c] = option;
+      }
+    });
+
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+    setQualificationPicker(null);
+    setCustomQualificationInput('');
+    setPickerSearchQuery('');
+  };
+
+  const emailColIndex = React.useMemo(() => {
+    if (!activeSheet) return -1;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row) {
+        const idx = row.findIndex(c => {
+          const s = String(c || '').trim();
+          return s === 'الإيميل' || s === 'الايميل' || s.includes('الإيميل') || s.includes('الايميل') || s.includes('البريد');
+        });
+        if (idx !== -1) return idx;
+      }
+    }
+    return -1;
+  }, [activeSheet]);
+
+  const isEmailCell = (rIdx: number, cIdx: number) => {
+    if (!activeSheet) return false;
+    if (rIdx <= headerRowIndex) return false;
+    // Strictly restrict email cell behavior to the email column only
+    if (emailColIndex === -1 || cIdx !== emailColIndex) return false;
+    const row = activeSheet.data[rIdx];
+    if (!row) return false;
+    const rowStr = row.map(c => String(c || "")).join(" ");
+    if (rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين")) {
+      return false;
+    }
+    return true;
+  };
+
+  const saveEmailValue = (rIndex: number, cIndex: number, value: string) => {
+    if (!activeSheet) return;
+    setHistory(prev => [...prev, activeSheet]);
+
+    const newData = activeSheet.data.map(row => [...row]);
+    const targetKeys = new Set<string>();
+    if (selectedCells.has(`${rIndex},${cIndex}`)) {
+      selectedCells.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        if (c === cIndex && isEmailCell(r, c)) {
+          targetKeys.add(key);
+        }
+      });
+    }
+    if (targetKeys.size === 0) {
+      targetKeys.add(`${rIndex},${cIndex}`);
+    }
+
+    targetKeys.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (newData[r] && newData[r][c] !== undefined) {
+        newData[r][c] = value;
+      }
+    });
+
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+    setEditingCell(null);
+  };
+
   const handleMouseDown = (rIndex: number, cIndex: number, e: React.MouseEvent) => {
     if (e.button !== 0) return;
     e.stopPropagation();
@@ -480,6 +1756,114 @@ function App() {
     } else {
       setDragSnapshot(new Set());
       setSelectedCells(new Set([cellKey]));
+    }
+
+    if (isClasseraCell(rIndex, cIndex)) {
+      closeAllPickers();
+      const targetEl = (e.target as HTMLElement).closest('td') || (e.currentTarget as HTMLElement);
+      const rect = targetEl.getBoundingClientRect();
+      setClasseraPicker({
+        r: rIndex,
+        c: cIndex,
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      });
+    } else if (isLicenseCell(rIndex, cIndex)) {
+      closeAllPickers();
+      const targetEl = (e.target as HTMLElement).closest('td') || (e.currentTarget as HTMLElement);
+      const rect = targetEl.getBoundingClientRect();
+      setLicensePicker({
+        r: rIndex,
+        c: cIndex,
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      });
+    } else if (isSectionCell(rIndex, cIndex)) {
+      closeAllPickers();
+      const targetEl = (e.target as HTMLElement).closest('td') || (e.currentTarget as HTMLElement);
+      const rect = targetEl.getBoundingClientRect();
+      setSectionPicker({
+        r: rIndex,
+        c: cIndex,
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      });
+    } else if (isStageCell(rIndex, cIndex)) {
+      closeAllPickers();
+      const targetEl = (e.target as HTMLElement).closest('td') || (e.currentTarget as HTMLElement);
+      const rect = targetEl.getBoundingClientRect();
+      setStagePicker({
+        r: rIndex,
+        c: cIndex,
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      });
+    } else if (isQuotaCell(rIndex, cIndex)) {
+      closeAllPickers();
+      const targetEl = (e.target as HTMLElement).closest('td') || (e.currentTarget as HTMLElement);
+      const rect = targetEl.getBoundingClientRect();
+      setQuotaPicker({
+        r: rIndex,
+        c: cIndex,
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      });
+    } else if (isNationalityCell(rIndex, cIndex)) {
+      closeAllPickers();
+      const targetEl = (e.target as HTMLElement).closest('td') || (e.currentTarget as HTMLElement);
+      const rect = targetEl.getBoundingClientRect();
+      setNationalityPicker({
+        r: rIndex,
+        c: cIndex,
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      });
+    } else if (isSpecializationCell(rIndex, cIndex)) {
+      closeAllPickers();
+      const targetEl = (e.target as HTMLElement).closest('td') || (e.currentTarget as HTMLElement);
+      const rect = targetEl.getBoundingClientRect();
+      setSpecializationPicker({
+        r: rIndex,
+        c: cIndex,
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      });
+    } else if (isQualificationCell(rIndex, cIndex)) {
+      closeAllPickers();
+      const targetEl = (e.target as HTMLElement).closest('td') || (e.currentTarget as HTMLElement);
+      const rect = targetEl.getBoundingClientRect();
+      setQualificationPicker({
+        r: rIndex,
+        c: cIndex,
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      });
+    } else if (isEmailCell(rIndex, cIndex)) {
+      closeAllPickers();
+      if (editingCell && (editingCell.r !== rIndex || editingCell.c !== cIndex)) {
+        commitCellEdit(editingCell.r, editingCell.c, editingCell.value);
+      }
+    } else {
+      closeAllPickers();
+      if (editingCell && (editingCell.r !== rIndex || editingCell.c !== cIndex)) {
+        commitCellEdit(editingCell.r, editingCell.c, editingCell.value);
+      }
     }
   };
 
@@ -821,9 +2205,11 @@ function App() {
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       
       const allCards = [
+        { name: 'بيانات الكادر الإداري', sheetName: 'إدارة المجمع' },
         { name: 'ادارة المجمع', sheetName: 'إدارة المجمع' },
+        { name: 'إدارة المجمع', sheetName: 'إدارة المجمع' },
+        { name: 'بيانات الكادر التعليمي', sheetName: 'المعلمين' },
         { name: 'بيانات المعلمين', sheetName: 'المعلمين' },
-        { name: 'بيانات المعلمات', sheetName: 'المعلمات' },
         { name: 'بيانات الإداريين', sheetName: 'اداريين دار القلم' },
         { name: 'بيانات الإداريات', sheetName: 'اداريات دار القلم' },
         { name: 'الخدمات المساندة', sheetName: 'الخدمات المساندة' },
@@ -894,11 +2280,8 @@ function App() {
   };
 
   const whiteCards = [
-    { name: 'ادارة المجمع', sheetName: 'إدارة المجمع', icon: Building },
-    { name: 'بيانات المعلمين', sheetName: 'المعلمين', icon: GraduationCap },
-    { name: 'بيانات المعلمات', sheetName: 'المعلمات', icon: Users },
-    { name: 'بيانات الإداريين', sheetName: 'اداريين دار القلم', icon: Briefcase },
-    { name: 'بيانات الإداريات', sheetName: 'اداريات دار القلم', icon: UserCog },
+    { name: 'بيانات الكادر الإداري', sheetName: 'إدارة المجمع', icon: Building },
+    { name: 'بيانات الكادر التعليمي', sheetName: 'المعلمين', icon: GraduationCap },
     { name: 'الخدمات المساندة', sheetName: 'الخدمات المساندة', icon: HeartHandshake },
     { name: 'إحصاء الفصول والطلاب', sheetName: 'إحصاء الطلاب', icon: BarChart },
     { name: 'مساحات الفصول', sheetName: 'مساحات الفصول', icon: Maximize },
@@ -1044,11 +2427,22 @@ function App() {
     return (
       <div 
         ref={scrollContainerRef}
-        className={`overflow-auto rounded-xl border border-slate-300 shadow-sm bg-white pb-4 custom-scrollbar ${isFullscreen ? 'flex-1 min-h-0 h-full' : 'max-h-[75vh]'}`}
+        className="flex-1 min-h-0 w-full overflow-auto rounded-xl border border-slate-300 shadow-sm bg-white custom-scrollbar relative"
         style={{ scrollBehavior: 'auto' }}
       >
-        <div style={{ transform: `scale(${zoom})`, transformOrigin: 'top right', minWidth: 'max-content' }}>
-          <table className="text-sm text-center border-collapse w-max min-w-full" style={{ tableLayout: 'fixed' }}>
+        <div 
+          ref={tableContentRef}
+          style={{ 
+            transform: zoom !== 1 ? `scale(${zoom})` : undefined, 
+            transformOrigin: 'top right', 
+            width: zoom > 1 ? `${zoom * 100}%` : '100%',
+            minWidth: '100%'
+          }}
+        >
+          <table 
+            className="text-sm md:text-base text-center border-collapse w-full min-w-full" 
+            style={{ tableLayout: activeSheet.colWidths && Object.keys(activeSheet.colWidths).length > 0 ? 'fixed' : 'auto' }}
+          >
             <tbody>
               {/* صف أزرار التحكم بالأعمدة (رؤوس الأعمدة A, B, C...) */}
               <tr>
@@ -1216,20 +2610,39 @@ function App() {
                   const rowSpan = merge ? merge.rowSpan : 1;
                   const colSpan = merge ? merge.colSpan : 1;
                   
-                  // تصميم الخلية يعتمد على التحديد واللون المخصص والصف الأول
-                  let defaultClasses = "border border-slate-300 px-4 py-3 cursor-pointer select-none transition-all duration-200 relative ";
+                  // تصميم الخلية يعتمد على التحديد واللون المخصص والصف الأول والبحث
+                  let defaultClasses = "border border-slate-300 px-3 py-2.5 md:px-4 md:py-3 cursor-pointer select-none transition-all duration-150 relative ";
                   
-                  // الحفاظ على الحجم والسمك الافتراضي سواء كان محدد أم لا
+                  const isFemaleSubheader = String(cell || "").includes("بيانات  المعلمات") || String(cell || "").includes("بيانات المعلمات");
+                  const isFemaleBadge = cell === "معلمات";
+                  const isAdminSubheader = String(cell || "").includes("بيانات الإداريين") || String(cell || "").includes("بيانات الإداريات") || String(cell || "") === "إدارة المجمع";
+                  const isAdminBadge = cell === "إداريين" || cell === "إداريات" || cell === "إدارة";
+
                   if (rowIdx === 0) {
-                    defaultClasses += "text-lg font-bold ";
+                    defaultClasses += "text-base md:text-lg font-bold bg-blue-50 text-blue-950 ";
+                  } else if (isFemaleSubheader) {
+                    defaultClasses += "text-base md:text-lg font-bold bg-purple-50 text-purple-950 border-purple-200 shadow-sm ";
+                  } else if (isFemaleBadge) {
+                    defaultClasses += "text-sm font-bold bg-purple-100 text-purple-800 ";
+                  } else if (isAdminSubheader) {
+                    defaultClasses += "text-base md:text-lg font-bold bg-emerald-50 text-emerald-950 border-emerald-200 shadow-sm ";
+                  } else if (isAdminBadge) {
+                    defaultClasses += "text-sm font-bold bg-emerald-100 text-emerald-800 ";
                   } else {
-                    defaultClasses += "font-medium ";
+                    defaultClasses += "text-sm md:text-base font-medium ";
                   }
+
+                  const isSearchMatch = Boolean(
+                    sheetSearchQuery.trim() && 
+                    String(cell || "").toLowerCase().includes(sheetSearchQuery.trim().toLowerCase())
+                  );
 
                   if (isSelected) {
                     defaultClasses += "ring-2 ring-inset ring-blue-500 bg-blue-100 shadow-[inset_0_0_0_2px_rgba(59,130,246,0.5)] text-slate-800 ";
-                  } else if (rowIdx !== 0 && !cellColor.bg) {
-                    defaultClasses += "text-slate-700 ";
+                  } else if (isSearchMatch) {
+                    defaultClasses += "bg-amber-100 ring-2 ring-inset ring-amber-400 font-bold text-amber-950 ";
+                  } else if (rowIdx !== 0 && !cellColor.bg && !isFemaleSubheader && !isFemaleBadge && !isAdminSubheader && !isAdminBadge) {
+                    defaultClasses += "text-slate-800 hover:bg-blue-50/60 even:bg-slate-50/70 ";
                   }
 
                   return (
@@ -1241,6 +2654,15 @@ function App() {
                       colSpan={colSpan}
                       onMouseDown={(e) => handleMouseDown(rowIdx, colIdx, e)}
                       onMouseEnter={() => handleMouseEnter(rowIdx, colIdx)}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        closeAllPickers();
+                        setEditingCell({
+                          r: rowIdx,
+                          c: colIdx,
+                          value: String(cell ?? '')
+                        });
+                      }}
                       style={{ 
                         backgroundColor: cellColor.bg || undefined,
                         color: cellColor.text || undefined,
@@ -1294,7 +2716,305 @@ function App() {
                           {cellColor.shape === 'arrow-down' && <ArrowDown size={28} strokeWidth={2.5} />}
                         </div>
                       )}
-                      {cell}
+                      {editingCell && editingCell.r === rowIdx && editingCell.c === colIdx ? (
+                        isEmailCell(rowIdx, colIdx) ? (
+                          <InCellEmailEditor
+                            initialValue={editingCell.value}
+                            onSave={(val) => commitCellEdit(rowIdx, colIdx, val)}
+                            onCancel={() => setEditingCell(null)}
+                          />
+                        ) : (
+                          <InCellGeneralEditor
+                            initialValue={editingCell.value}
+                            onSave={(val) => commitCellEdit(rowIdx, colIdx, val)}
+                            onCancel={() => setEditingCell(null)}
+                            bold={cellColor.bold}
+                            align={cellColor.textAlign}
+                          />
+                        )
+                      ) : isClasseraCell(rowIdx, colIdx) ? (
+                        <div className="w-full flex items-center justify-center gap-1.5 py-1 pointer-events-none select-none">
+                          {(() => {
+                            const strVal = String(cell || '').trim();
+                            const currentOpt = CLASSERA_OPTIONS.find(o => o.label === strVal);
+                            if (currentOpt) {
+                              return (
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-extrabold shadow-sm border ${currentOpt.badgeClass}`}>
+                                  <span className={`w-2 h-2 rounded-full ${currentOpt.dotColor}`} />
+                                  <span>{currentOpt.label}</span>
+                                  <ChevronDown size={13} className="opacity-60" />
+                                </span>
+                              );
+                            } else if (strVal) {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                                  <span>{strVal}</span>
+                                  <ChevronDown size={13} className="opacity-60" />
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-blue-600 text-xs font-semibold px-2 py-1 rounded-md transition-colors border border-dashed border-slate-300 bg-slate-50/70">
+                                  <span>اختر</span>
+                                  <ChevronDown size={13} className="text-slate-400" />
+                                </span>
+                              );
+                            }
+                          })()}
+                        </div>
+                      ) : isLicenseCell(rowIdx, colIdx) ? (
+                        <div className="w-full flex items-center justify-center gap-1.5 py-1 pointer-events-none select-none">
+                          {(() => {
+                            const strVal = String(cell != null ? cell : '').trim();
+                            if (strVal === '1') {
+                              return (
+                                <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-extrabold shadow-sm bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                  <span>1</span>
+                                  <ChevronDown size={13} className="opacity-60" />
+                                </span>
+                              );
+                            } else if (strVal === '0') {
+                              return (
+                                <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-bold shadow-sm bg-slate-100 text-slate-700 border border-slate-300">
+                                  <span className="w-2 h-2 rounded-full bg-slate-400" />
+                                  <span>0</span>
+                                  <ChevronDown size={13} className="opacity-60" />
+                                </span>
+                              );
+                            } else if (strVal !== '') {
+                              return (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                  <span>{strVal}</span>
+                                  <ChevronDown size={13} className="opacity-60" />
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-blue-600 text-xs font-semibold px-2 py-1 rounded-md transition-colors border border-dashed border-slate-300 bg-slate-50/70">
+                                  <span>اختر</span>
+                                  <ChevronDown size={13} className="text-slate-400" />
+                                </span>
+                              );
+                            }
+                          })()}
+                        </div>
+                      ) : isSectionCell(rowIdx, colIdx) ? (
+                        <div className="w-full flex items-center justify-center gap-1.5 py-1 pointer-events-none select-none">
+                          {(() => {
+                            const strVal = String(cell != null ? cell : '').trim();
+                            const currentOpt = SECTION_OPTIONS.find(o => o.label === strVal);
+                            if (currentOpt) {
+                              return (
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-extrabold shadow-sm border ${currentOpt.badgeClass}`}>
+                                  <span className={`w-2 h-2 rounded-full ${currentOpt.dotColor}`} />
+                                  <span>{currentOpt.label}</span>
+                                  <ChevronDown size={13} className="opacity-60" />
+                                </span>
+                              );
+                            } else if (strVal !== '') {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                                  <span>{strVal}</span>
+                                  <ChevronDown size={13} className="opacity-60" />
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-blue-600 text-xs font-semibold px-2 py-1 rounded-md transition-colors border border-dashed border-slate-300 bg-slate-50/70">
+                                  <span>اختر</span>
+                                  <ChevronDown size={13} className="text-slate-400" />
+                                </span>
+                              );
+                            }
+                          })()}
+                        </div>
+                      ) : isStageCell(rowIdx, colIdx) ? (
+                        <div className="w-full flex items-center justify-center gap-1.5 py-1 pointer-events-none select-none">
+                          {(() => {
+                            const strVal = String(cell != null ? cell : '').trim();
+                            const normalizedStage = (strVal === 'ابتدائي' || strVal === 'إبتدائي') ? 'إبتدائي' : strVal;
+                            const currentOpt = STAGE_OPTIONS.find(o => o.label === normalizedStage);
+                            if (currentOpt) {
+                              return (
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-extrabold shadow-sm border ${currentOpt.badgeClass}`}>
+                                  <span className={`w-2 h-2 rounded-full ${currentOpt.dotColor}`} />
+                                  <span>{currentOpt.label}</span>
+                                  <ChevronDown size={13} className="opacity-60" />
+                                </span>
+                              );
+                            } else if (strVal !== '') {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                                  <span>{strVal}</span>
+                                  <ChevronDown size={13} className="opacity-60" />
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-blue-600 text-xs font-semibold px-2 py-1 rounded-md transition-colors border border-dashed border-slate-300 bg-slate-50/70">
+                                  <span>اختر</span>
+                                  <ChevronDown size={13} className="text-slate-400" />
+                                </span>
+                              );
+                            }
+                          })()}
+                        </div>
+                      ) : isQuotaCell(rowIdx, colIdx) ? (
+                        <div className="w-full flex items-center justify-center gap-1.5 py-1 pointer-events-none select-none">
+                          {(() => {
+                            const strVal = String(cell != null ? cell : '').trim();
+                            if (strVal !== '') {
+                              return (
+                                <span className="inline-flex items-center justify-center gap-1 px-3 py-1 rounded-full text-xs md:text-sm font-black bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm">
+                                  <span>{strVal}</span>
+                                  <ChevronDown size={12} className="opacity-60" />
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-blue-600 text-xs font-semibold px-2 py-1 rounded-md transition-colors border border-dashed border-slate-300 bg-slate-50/70">
+                                  <span>اختر</span>
+                                  <ChevronDown size={13} className="text-slate-400" />
+                                </span>
+                              );
+                            }
+                          })()}
+                        </div>
+                      ) : isNationalityCell(rowIdx, colIdx) ? (
+                        <div className="w-full flex items-center justify-center gap-1.5 py-1 pointer-events-none select-none">
+                          {(() => {
+                            const strVal = String(cell != null ? cell : '').trim();
+                            const currentOpt = NATIONALITY_OPTIONS.find(o => o.label === strVal);
+                            if (currentOpt) {
+                              return (
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-extrabold shadow-sm border ${currentOpt.badgeClass}`}>
+                                  <span>{currentOpt.flag}</span>
+                                  <span>{currentOpt.label}</span>
+                                  <ChevronDown size={13} className="opacity-60" />
+                                </span>
+                              );
+                            } else if (strVal !== '') {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                                  <Globe size={13} className="text-slate-500" />
+                                  <span>{strVal}</span>
+                                  <ChevronDown size={13} className="opacity-60" />
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-blue-600 text-xs font-semibold px-2 py-1 rounded-md transition-colors border border-dashed border-slate-300 bg-slate-50/70">
+                                  <span>اختر</span>
+                                  <ChevronDown size={13} className="text-slate-400" />
+                                </span>
+                              );
+                            }
+                          })()}
+                        </div>
+                      ) : isSpecializationCell(rowIdx, colIdx) ? (
+                        <div className="w-full flex items-center justify-center gap-1.5 py-1 pointer-events-none select-none">
+                          {(() => {
+                            const strVal = String(cell != null ? cell : '').trim();
+                            if (strVal !== '') {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-bold bg-sky-50 text-sky-800 border border-sky-200 shadow-sm">
+                                  <BookOpen size={13} className="text-sky-600" />
+                                  <span>{strVal}</span>
+                                  <ChevronDown size={12} className="opacity-60" />
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-blue-600 text-xs font-semibold px-2 py-1 rounded-md transition-colors border border-dashed border-slate-300 bg-slate-50/70">
+                                  <span>اختر</span>
+                                  <ChevronDown size={13} className="text-slate-400" />
+                                </span>
+                              );
+                            }
+                          })()}
+                        </div>
+                      ) : isQualificationCell(rowIdx, colIdx) ? (
+                        <div className="w-full flex items-center justify-center gap-1.5 py-1 pointer-events-none select-none">
+                          {(() => {
+                            const strVal = String(cell != null ? cell : '').trim();
+                            if (strVal !== '') {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-bold bg-teal-50 text-teal-800 border border-teal-200 shadow-sm">
+                                  <Award size={13} className="text-teal-600" />
+                                  <span>{strVal}</span>
+                                  <ChevronDown size={12} className="opacity-60" />
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-blue-600 text-xs font-semibold px-2 py-1 rounded-md transition-colors border border-dashed border-slate-300 bg-slate-50/70">
+                                  <span>اختر</span>
+                                  <ChevronDown size={13} className="text-slate-400" />
+                                </span>
+                              );
+                            }
+                          })()}
+                        </div>
+                      ) : isEmailCell(rowIdx, colIdx) ? (
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            closeAllPickers();
+                            setEditingCell({ r: rowIdx, c: colIdx, value: String(cell ?? '') });
+                          }}
+                          className="w-full flex items-center justify-center gap-1.5 py-1 select-none group/email cursor-pointer"
+                        >
+                          {(() => {
+                            const strVal = String(cell != null ? cell : '').trim();
+                            if (strVal !== '') {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs md:text-sm font-mono text-blue-800 bg-blue-50/70 border border-blue-200 hover:bg-blue-100 hover:border-blue-400 transition-colors" dir="ltr">
+                                  <Mail size={12} className="text-blue-500 shrink-0" />
+                                  <span className="truncate max-w-[200px]">{strVal}</span>
+                                  <Edit2 size={11} className="text-blue-500 opacity-60 group-hover/email:opacity-100 transition-opacity" />
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-blue-600 text-xs font-semibold px-2 py-1 rounded-md transition-colors border border-dashed border-slate-300 bg-slate-50/70 hover:bg-blue-50/50">
+                                  <Mail size={12} />
+                                  <span>أدخل الإيميل</span>
+                                  <Edit2 size={11} className="text-slate-400" />
+                                </span>
+                              );
+                            }
+                          })()}
+                        </div>
+                      ) : (
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            closeAllPickers();
+                            setEditingCell({ r: rowIdx, c: colIdx, value: String(cell ?? '') });
+                          }}
+                          className="w-full h-full min-h-[26px] flex items-center justify-center group/cell relative cursor-pointer"
+                          title="انقر أو انقر مرتين للتحرير المباشر"
+                        >
+                          <span className="truncate">{cell}</span>
+                          {isSelected && selectedCells.size === 1 && (
+                            <button
+                              type="button"
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                closeAllPickers();
+                                setEditingCell({ r: rowIdx, c: colIdx, value: String(cell ?? '') });
+                              }}
+                              className="absolute left-1 flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 shadow-sm text-[11px] font-bold transition-all z-20"
+                              title="تعديل الخلية"
+                            >
+                              <Edit2 size={11} />
+                              <span>تعديل</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </td>
                   );
                 })}
@@ -1310,6 +3030,764 @@ function App() {
           </tbody>
         </table>
         </div>
+
+        {/* نافذة الخيارات المباشرة المنبثقة فوق الخلية فور الضغط عليها */}
+        {classeraPicker && activeSheet && (
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[0.5px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setClasseraPicker(null);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <div 
+              className="fixed bg-white rounded-2xl shadow-2xl border-2 border-blue-400 p-3 min-w-[220px] text-right font-sans ring-4 ring-blue-500/10 z-[10000] animate-in fade-in zoom-in-95 duration-100"
+              style={{
+                top: classeraPicker.bottom + 235 > window.innerHeight 
+                  ? Math.max(10, classeraPicker.top - 235) 
+                  : classeraPicker.bottom + 4,
+                right: Math.max(12, Math.min(window.innerWidth - 240, window.innerWidth - classeraPicker.right)),
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-black text-blue-950">
+                  <Sparkles size={14} className="text-amber-500" />
+                  <span>اختر مستوى كلاسيرا</span>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setClasseraPicker(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                {CLASSERA_OPTIONS.map((opt) => {
+                  const cellVal = String(activeSheet.data[classeraPicker.r]?.[classeraPicker.c] || '').trim();
+                  const isSelected = cellVal === opt.label;
+                  return (
+                    <button
+                      type="button"
+                      key={opt.label}
+                      onClick={() => handleSelectClasseraOption(classeraPicker.r, classeraPicker.c, opt.label)}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                        isSelected 
+                          ? `${opt.activeBg} ${opt.textColor} ${opt.borderColor} shadow-sm ring-2 ${opt.ringColor}`
+                          : `bg-slate-50 hover:${opt.hoverBg} text-slate-700 hover:${opt.textColor} border-slate-200 hover:${opt.borderColor}`
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`w-3 h-3 rounded-full ${opt.dotColor}`} />
+                        <span>{opt.label}</span>
+                      </div>
+                      {isSelected && <Check size={16} className={opt.textColor} />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {activeSheet.data[classeraPicker.r]?.[classeraPicker.c] && (
+                <div className="border-t border-slate-100 pt-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectClasseraOption(classeraPicker.r, classeraPicker.c, "")}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Eraser size={13} />
+                    <span>مسح القيمة</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* نافذة خيارات الرخصة المهنية (0 أو 1) المنبثقة مباشرة فوق الخلية */}
+        {licensePicker && activeSheet && (
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[0.5px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLicensePicker(null);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <div 
+              className="fixed bg-white rounded-2xl shadow-2xl border-2 border-emerald-500 p-3.5 min-w-[210px] text-right font-sans ring-4 ring-emerald-500/10 z-[10000] animate-in fade-in zoom-in-95 duration-100"
+              style={{
+                top: licensePicker.bottom + 190 > window.innerHeight 
+                  ? Math.max(10, licensePicker.top - 190) 
+                  : licensePicker.bottom + 4,
+                right: Math.max(12, Math.min(window.innerWidth - 230, window.innerWidth - licensePicker.right)),
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+                <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
+                  <FileText size={15} className="text-emerald-600" />
+                  <span>الرخصة المهنية</span>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setLicensePicker(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                {/* خيار 1 */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectLicenseOption(licensePicker.r, licensePicker.c, 1)}
+                  className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 font-black transition-all ${
+                    String(activeSheet.data[licensePicker.r]?.[licensePicker.c]).trim() === '1'
+                      ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-md ring-2 ring-emerald-400/40'
+                      : 'bg-slate-50 hover:bg-emerald-50 border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700'
+                  }`}
+                >
+                  <span className="text-2xl font-black mb-0.5 text-emerald-700">1</span>
+                  <span className="text-[11px] font-bold text-emerald-800">حاصل</span>
+                </button>
+
+                {/* خيار 0 */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectLicenseOption(licensePicker.r, licensePicker.c, 0)}
+                  className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 font-black transition-all ${
+                    String(activeSheet.data[licensePicker.r]?.[licensePicker.c]).trim() === '0'
+                      ? 'bg-slate-100 border-slate-500 text-slate-800 shadow-md ring-2 ring-slate-400/40'
+                      : 'bg-slate-50 hover:bg-slate-100 border-slate-200 hover:border-slate-300 text-slate-700'
+                  }`}
+                >
+                  <span className="text-2xl font-black mb-0.5 text-slate-700">0</span>
+                  <span className="text-[11px] font-bold text-slate-600">غير حاصل</span>
+                </button>
+              </div>
+
+              {activeSheet.data[licensePicker.r]?.[licensePicker.c] !== "" && activeSheet.data[licensePicker.r]?.[licensePicker.c] != null && (
+                <div className="border-t border-slate-100 pt-2 mt-2.5">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectLicenseOption(licensePicker.r, licensePicker.c, "")}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Eraser size={13} />
+                    <span>مسح القيمة</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* نافذة خيارات القسم (بنين أو بنات) المنبثقة مباشرة فوق الخلية */}
+        {sectionPicker && activeSheet && (
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[0.5px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSectionPicker(null);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <div 
+              className="fixed bg-white rounded-2xl shadow-2xl border-2 border-blue-500 p-3.5 min-w-[210px] text-right font-sans ring-4 ring-blue-500/10 z-[10000] animate-in fade-in zoom-in-95 duration-100"
+              style={{
+                top: sectionPicker.bottom + 190 > window.innerHeight 
+                  ? Math.max(10, sectionPicker.top - 190) 
+                  : sectionPicker.bottom + 4,
+                right: Math.max(12, Math.min(window.innerWidth - 230, window.innerWidth - sectionPicker.right)),
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+                <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
+                  <Users size={15} className="text-blue-600" />
+                  <span>القسم</span>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setSectionPicker(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                {SECTION_OPTIONS.map(opt => {
+                  const cellVal = String(activeSheet.data[sectionPicker.r]?.[sectionPicker.c] || '').trim();
+                  const isSelected = cellVal === opt.label;
+                  return (
+                    <button
+                      type="button"
+                      key={opt.label}
+                      onClick={() => handleSelectSectionOption(sectionPicker.r, sectionPicker.c, opt.label)}
+                      className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 font-black transition-all ${
+                        isSelected
+                          ? `${opt.activeBg} ${opt.borderColor} ${opt.textColor} shadow-md ring-2 ${opt.ringColor}`
+                          : `bg-slate-50 hover:${opt.hoverBg} border-slate-200 hover:${opt.borderColor} text-slate-700 hover:${opt.textColor}`
+                      }`}
+                    >
+                      <span className="text-2xl mb-0.5">{opt.icon}</span>
+                      <span className="text-xs font-black">{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {activeSheet.data[sectionPicker.r]?.[sectionPicker.c] && (
+                <div className="border-t border-slate-100 pt-2 mt-2.5">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectSectionOption(sectionPicker.r, sectionPicker.c, "")}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Eraser size={13} />
+                    <span>مسح القيمة</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* نافذة خيارات المرحلة المنبثقة مباشرة فوق الخلية */}
+        {stagePicker && activeSheet && (
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[0.5px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setStagePicker(null);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <div 
+              className="fixed bg-white rounded-2xl shadow-2xl border-2 border-emerald-500 p-3 min-w-[210px] text-right font-sans ring-4 ring-emerald-500/10 z-[10000] animate-in fade-in zoom-in-95 duration-100"
+              style={{
+                top: stagePicker.bottom + 270 > window.innerHeight 
+                  ? Math.max(10, stagePicker.top - 270) 
+                  : stagePicker.bottom + 4,
+                right: Math.max(12, Math.min(window.innerWidth - 230, window.innerWidth - stagePicker.right)),
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
+                  <GraduationCap size={15} className="text-emerald-600" />
+                  <span>المرحلة الدراسية</span>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setStagePicker(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                {STAGE_OPTIONS.map(opt => {
+                  const cellVal = String(activeSheet.data[stagePicker.r]?.[stagePicker.c] || '').trim();
+                  const isSelected = cellVal === opt.label || (opt.label === 'إبتدائي' && cellVal === 'ابتدائي');
+                  return (
+                    <button
+                      type="button"
+                      key={opt.label}
+                      onClick={() => handleSelectStageOption(stagePicker.r, stagePicker.c, opt.label)}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs md:text-sm font-bold transition-all border ${
+                        isSelected
+                          ? `${opt.activeBg} ${opt.textColor} ${opt.borderColor} shadow-sm ring-2 ${opt.ringColor}`
+                          : `bg-slate-50 hover:${opt.hoverBg} text-slate-700 hover:${opt.textColor} border-slate-200 hover:${opt.borderColor}`
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${opt.dotColor}`} />
+                        <span>{opt.label}</span>
+                      </div>
+                      {isSelected && <Check size={16} className={opt.textColor} />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {activeSheet.data[stagePicker.r]?.[stagePicker.c] && (
+                <div className="border-t border-slate-100 pt-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectStageOption(stagePicker.r, stagePicker.c, "")}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Eraser size={13} />
+                    <span>مسح القيمة</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* نافذة خيارات نصاب المعلم (1 إلى 35) المنبثقة مباشرة فوق الخلية */}
+        {quotaPicker && activeSheet && (
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[0.5px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setQuotaPicker(null);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <div 
+              className="fixed bg-white rounded-2xl shadow-2xl border-2 border-indigo-500 p-3 min-w-[280px] max-w-[320px] text-right font-sans ring-4 ring-indigo-500/10 z-[10000] animate-in fade-in zoom-in-95 duration-100"
+              style={{
+                top: quotaPicker.bottom + 270 > window.innerHeight 
+                  ? Math.max(10, quotaPicker.top - 270) 
+                  : quotaPicker.bottom + 4,
+                right: Math.max(12, Math.min(window.innerWidth - 300, window.innerWidth - quotaPicker.right)),
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
+                  <Activity size={15} className="text-indigo-600" />
+                  <span>نصاب المعلم (1 إلى 35)</span>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setQuotaPicker(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-7 gap-1.5 p-1 max-h-56 overflow-y-auto custom-scrollbar">
+                {QUOTA_OPTIONS.map(num => {
+                  const cellVal = String(activeSheet.data[quotaPicker.r]?.[quotaPicker.c] || '').trim();
+                  const isSelected = cellVal === String(num);
+                  return (
+                    <button
+                      type="button"
+                      key={num}
+                      onClick={() => handleSelectQuotaOption(quotaPicker.r, quotaPicker.c, num)}
+                      className={`h-8 rounded-lg font-black text-xs md:text-sm flex items-center justify-center transition-all border ${
+                        isSelected
+                          ? 'bg-indigo-600 text-white border-indigo-700 shadow-md ring-2 ring-indigo-400'
+                          : 'bg-slate-50 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border-slate-200'
+                      }`}
+                    >
+                      {num}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {activeSheet.data[quotaPicker.r]?.[quotaPicker.c] !== "" && activeSheet.data[quotaPicker.r]?.[quotaPicker.c] != null && (
+                <div className="border-t border-slate-100 pt-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectQuotaOption(quotaPicker.r, quotaPicker.c, "")}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Eraser size={13} />
+                    <span>مسح القيمة</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* نافذة خيارات الجنسية المنبثقة مباشرة فوق الخلية */}
+        {nationalityPicker && activeSheet && (
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[0.5px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setNationalityPicker(null);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <div 
+              className="fixed bg-white rounded-2xl shadow-2xl border-2 border-emerald-500 p-3.5 min-w-[240px] max-w-[280px] text-right font-sans ring-4 ring-emerald-500/10 z-[10000] animate-in fade-in zoom-in-95 duration-100"
+              style={{
+                top: nationalityPicker.bottom + 290 > window.innerHeight 
+                  ? Math.max(10, nationalityPicker.top - 290) 
+                  : nationalityPicker.bottom + 4,
+                right: Math.max(12, Math.min(window.innerWidth - 260, window.innerWidth - nationalityPicker.right)),
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
+                  <Globe size={15} className="text-emerald-600" />
+                  <span>الجنسية</span>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setNationalityPicker(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                {NATIONALITY_OPTIONS.map(opt => {
+                  const cellVal = String(activeSheet.data[nationalityPicker.r]?.[nationalityPicker.c] || '').trim();
+                  const isSelected = cellVal === opt.label;
+                  return (
+                    <button
+                      type="button"
+                      key={opt.label}
+                      onClick={() => handleSelectNationalityOption(nationalityPicker.r, nationalityPicker.c, opt.label)}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs md:text-sm font-bold transition-all border ${
+                        isSelected
+                          ? `${opt.activeBg} ${opt.textColor} ${opt.borderColor} shadow-sm ring-2 ${opt.ringColor}`
+                          : `bg-slate-50 hover:${opt.hoverBg} text-slate-700 hover:${opt.textColor} border-slate-200 hover:${opt.borderColor}`
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{opt.flag}</span>
+                        <span>{opt.label}</span>
+                      </div>
+                      {isSelected && <Check size={16} className={opt.textColor} />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* خيار إدخال جنسية يدوي خاص بالمسؤول فقط */}
+              {user?.role === 'admin' && (
+                <div className="border-t border-slate-200 pt-2.5 mt-2.5">
+                  <div className="text-[11px] font-bold text-blue-900 mb-1.5 flex items-center gap-1">
+                    <UserCog size={13} className="text-blue-600" />
+                    <span>كتابة يدوي (خاص بالمسؤول):</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={customNationalityInput}
+                      onChange={(e) => setCustomNationalityInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && customNationalityInput.trim()) {
+                          handleSelectNationalityOption(nationalityPicker.r, nationalityPicker.c, customNationalityInput.trim());
+                        }
+                      }}
+                      placeholder="اكتب أي جنسية..."
+                      className="flex-1 px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customNationalityInput.trim()) {
+                          handleSelectNationalityOption(nationalityPicker.r, nationalityPicker.c, customNationalityInput.trim());
+                        }
+                      }}
+                      disabled={!customNationalityInput.trim()}
+                      className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors"
+                    >
+                      حفظ
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeSheet.data[nationalityPicker.r]?.[nationalityPicker.c] && (
+                <div className="border-t border-slate-100 pt-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectNationalityOption(nationalityPicker.r, nationalityPicker.c, "")}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Eraser size={13} />
+                    <span>مسح القيمة</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* نافذة خيارات التخصص المنبثقة مباشرة فوق الخلية */}
+        {specializationPicker && activeSheet && (
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[0.5px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSpecializationPicker(null);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <div 
+              className="fixed bg-white rounded-2xl shadow-2xl border-2 border-sky-500 p-3 min-w-[260px] max-w-[320px] text-right font-sans ring-4 ring-sky-500/10 z-[10000] animate-in fade-in zoom-in-95 duration-100"
+              style={{
+                top: specializationPicker.bottom + 320 > window.innerHeight 
+                  ? Math.max(10, specializationPicker.top - 320) 
+                  : specializationPicker.bottom + 4,
+                right: Math.max(12, Math.min(window.innerWidth - 290, window.innerWidth - specializationPicker.right)),
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
+                  <BookOpen size={15} className="text-sky-600" />
+                  <span>التخصص</span>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setSpecializationPicker(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* بحث سريع داخل التخصصات */}
+              <div className="relative mb-2">
+                <input
+                  type="text"
+                  value={pickerSearchQuery}
+                  onChange={(e) => setPickerSearchQuery(e.target.value)}
+                  placeholder="ابحث في التخصصات..."
+                  className="w-full pl-2 pr-7 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                />
+                <Search size={13} className="absolute right-2 top-2.5 text-slate-400" />
+              </div>
+
+              <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar p-0.5">
+                {specializationOptions
+                  .filter(spec => !pickerSearchQuery.trim() || spec.toLowerCase().includes(pickerSearchQuery.trim().toLowerCase()))
+                  .map(spec => {
+                    const cellVal = String(activeSheet.data[specializationPicker.r]?.[specializationPicker.c] || '').trim();
+                    const isSelected = cellVal === spec;
+                    return (
+                      <button
+                        type="button"
+                        key={spec}
+                        onClick={() => handleSelectSpecializationOption(specializationPicker.r, specializationPicker.c, spec)}
+                        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          isSelected
+                            ? 'bg-sky-50 text-sky-800 border-sky-300 shadow-sm ring-1 ring-sky-400'
+                            : 'bg-slate-50 hover:bg-sky-50 text-slate-700 hover:text-sky-800 border-slate-100 hover:border-sky-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+                          <span>{spec}</span>
+                        </div>
+                        {isSelected && <Check size={14} className="text-sky-600" />}
+                      </button>
+                    );
+                  })}
+              </div>
+
+              {/* خيار إدخال تخصص يدوي خاص بالمسؤول فقط */}
+              {user?.role === 'admin' && (
+                <div className="border-t border-slate-200 pt-2 mt-2">
+                  <div className="text-[11px] font-bold text-blue-900 mb-1 flex items-center gap-1">
+                    <UserCog size={13} className="text-blue-600" />
+                    <span>كتابة تخصص يدوي (خاص بالمسؤول):</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={customSpecializationInput}
+                      onChange={(e) => setCustomSpecializationInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && customSpecializationInput.trim()) {
+                          handleSelectSpecializationOption(specializationPicker.r, specializationPicker.c, customSpecializationInput.trim());
+                        }
+                      }}
+                      placeholder="اكتب التخصص..."
+                      className="flex-1 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customSpecializationInput.trim()) {
+                          handleSelectSpecializationOption(specializationPicker.r, specializationPicker.c, customSpecializationInput.trim());
+                        }
+                      }}
+                      disabled={!customSpecializationInput.trim()}
+                      className="px-2.5 py-1.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors"
+                    >
+                      حفظ
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeSheet.data[specializationPicker.r]?.[specializationPicker.c] && (
+                <div className="border-t border-slate-100 pt-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectSpecializationOption(specializationPicker.r, specializationPicker.c, "")}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Eraser size={13} />
+                    <span>مسح القيمة</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* نافذة خيارات المؤهل المنبثقة مباشرة فوق الخلية */}
+        {qualificationPicker && activeSheet && (
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[0.5px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setQualificationPicker(null);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <div 
+              className="fixed bg-white rounded-2xl shadow-2xl border-2 border-teal-500 p-3 min-w-[260px] max-w-[320px] text-right font-sans ring-4 ring-teal-500/10 z-[10000] animate-in fade-in zoom-in-95 duration-100"
+              style={{
+                top: qualificationPicker.bottom + 320 > window.innerHeight 
+                  ? Math.max(10, qualificationPicker.top - 320) 
+                  : qualificationPicker.bottom + 4,
+                right: Math.max(12, Math.min(window.innerWidth - 290, window.innerWidth - qualificationPicker.right)),
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
+                  <Award size={15} className="text-teal-600" />
+                  <span>المؤهل العلمي</span>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setQualificationPicker(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* بحث سريع داخل المؤهلات */}
+              <div className="relative mb-2">
+                <input
+                  type="text"
+                  value={pickerSearchQuery}
+                  onChange={(e) => setPickerSearchQuery(e.target.value)}
+                  placeholder="ابحث في المؤهلات..."
+                  className="w-full pl-2 pr-7 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400"
+                />
+                <Search size={13} className="absolute right-2 top-2.5 text-slate-400" />
+              </div>
+
+              <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar p-0.5">
+                {qualificationOptions
+                  .filter(qual => !pickerSearchQuery.trim() || qual.toLowerCase().includes(pickerSearchQuery.trim().toLowerCase()))
+                  .map(qual => {
+                    const cellVal = String(activeSheet.data[qualificationPicker.r]?.[qualificationPicker.c] || '').trim();
+                    const isSelected = cellVal === qual;
+                    return (
+                      <button
+                        type="button"
+                        key={qual}
+                        onClick={() => handleSelectQualificationOption(qualificationPicker.r, qualificationPicker.c, qual)}
+                        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          isSelected
+                            ? 'bg-teal-50 text-teal-800 border-teal-300 shadow-sm ring-1 ring-teal-400'
+                            : 'bg-slate-50 hover:bg-teal-50 text-slate-700 hover:text-teal-800 border-slate-100 hover:border-teal-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                          <span>{qual}</span>
+                        </div>
+                        {isSelected && <Check size={14} className="text-teal-600" />}
+                      </button>
+                    );
+                  })}
+              </div>
+
+              {/* خيار إدخال مؤهل يدوي خاص بالمسؤول فقط */}
+              {user?.role === 'admin' && (
+                <div className="border-t border-slate-200 pt-2 mt-2">
+                  <div className="text-[11px] font-bold text-blue-900 mb-1 flex items-center gap-1">
+                    <UserCog size={13} className="text-blue-600" />
+                    <span>كتابة مؤهل يدوي (خاص بالمسؤول):</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={customQualificationInput}
+                      onChange={(e) => setCustomQualificationInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && customQualificationInput.trim()) {
+                          handleSelectQualificationOption(qualificationPicker.r, qualificationPicker.c, customQualificationInput.trim());
+                        }
+                      }}
+                      placeholder="اكتب المؤهل..."
+                      className="flex-1 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customQualificationInput.trim()) {
+                          handleSelectQualificationOption(qualificationPicker.r, qualificationPicker.c, customQualificationInput.trim());
+                        }
+                      }}
+                      disabled={!customQualificationInput.trim()}
+                      className="px-2.5 py-1.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors"
+                    >
+                      حفظ
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeSheet.data[qualificationPicker.r]?.[qualificationPicker.c] && (
+                <div className="border-t border-slate-100 pt-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectQualificationOption(qualificationPicker.r, qualificationPicker.c, "")}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Eraser size={13} />
+                    <span>مسح القيمة</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -1746,14 +4224,6 @@ function App() {
                 <img src={COMPLEX_LOGOS[user.complex || ''] || '/1000099845-removebg-preview.png'} alt={user.complex} className="h-16 sm:h-24 md:h-36 lg:h-48 xl:h-[22rem] w-auto object-contain flex-shrink-0 -my-2 sm:-my-4 md:-my-6" />
               )}
             </div>
-            
-            {/* Read-Only Badge */}
-            {user.role === 'admin' && (
-              <div className="absolute top-4 right-4 bg-orange-100 border border-orange-300 text-orange-800 px-2 sm:px-4 py-2 rounded-xl font-bold shadow-sm flex items-center gap-2 text-xs sm:text-sm">
-                <Eye size={16} />
-                <span>تقارير فقط</span>
-              </div>
-            )}
           </div>
         </header>
 
@@ -1863,6 +4333,12 @@ function App() {
                       Object.entries(modifiedSheets).forEach(([title, sheetData]: [string, any]) => {
                         // تحديد اسم الشيت الأصلي
                         const allCards = [...whiteCards, ...blueCards, 
+                          { name: 'بيانات الكادر الإداري', sheetName: 'إدارة المجمع' },
+                          { name: 'ادارة المجمع', sheetName: 'إدارة المجمع' },
+                          { name: 'إدارة المجمع', sheetName: 'إدارة المجمع' },
+                          { name: 'بيانات الإداريين', sheetName: 'اداريين دار القلم' },
+                          { name: 'بيانات الإداريات', sheetName: 'اداريات دار القلم' },
+                          { name: 'بيانات المعلمين', sheetName: 'المعلمين' },
                           { name: 'ترتيب القدرات والتحصيلي', sheetName: 'القدرات والتحصيلي' },
                           { name: 'قدرات', sheetName: 'القدرات والتحصيلي' },
                           { name: 'تحصيلي', sheetName: 'القدرات والتحصيلي' },
@@ -1944,19 +4420,17 @@ function App() {
                 <>
                   {/* أزرار اختيار الفئة (بيانات أو تقارير) */}
                   <div className="flex flex-row justify-center gap-4 md:gap-6 mb-8 w-full max-w-2xl mx-auto">
-                    {user?.role !== 'admin' && (
-                      <button
-                        onClick={() => setSelectedCategory(prev => prev === 'بيانات' ? null : 'بيانات')}
-                        className={`flex-1 py-4 md:py-6 rounded-2xl font-bold text-xl md:text-2xl shadow-md transition-all duration-300 flex flex-col items-center justify-center gap-3 ${
-                          selectedCategory === 'بيانات'
-                            ? 'bg-blue-600 text-white border-2 border-blue-700 scale-105 shadow-lg'
-                            : 'bg-white text-blue-700 border-2 border-slate-200 hover:bg-blue-50 hover:-translate-y-1'
-                        }`}
-                      >
-                        <LayoutGrid size={36} className={selectedCategory === 'بيانات' ? 'animate-bounce' : ''} />
-                        بيانات
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setSelectedCategory(prev => prev === 'بيانات' ? null : 'بيانات')}
+                      className={`flex-1 py-4 md:py-6 rounded-2xl font-bold text-xl md:text-2xl shadow-md transition-all duration-300 flex flex-col items-center justify-center gap-3 ${
+                        selectedCategory === 'بيانات'
+                          ? 'bg-blue-600 text-white border-2 border-blue-700 scale-105 shadow-lg'
+                          : 'bg-white text-blue-700 border-2 border-slate-200 hover:bg-blue-50 hover:-translate-y-1'
+                      }`}
+                    >
+                      <LayoutGrid size={36} className={selectedCategory === 'بيانات' ? 'animate-bounce' : ''} />
+                      بيانات
+                    </button>
                     <button
                       onClick={() => setSelectedCategory(prev => prev === 'تقارير' ? null : 'تقارير')}
                       className={`flex-1 py-4 md:py-6 rounded-2xl font-bold text-xl md:text-2xl shadow-md transition-all duration-300 flex flex-col items-center justify-center gap-3 ${
@@ -1984,11 +4458,7 @@ function App() {
                     </div>
                   ) : (
                     <div className="text-center py-6 px-4 text-slate-500 font-medium bg-blue-50/60 rounded-2xl border border-blue-100 max-w-xl mx-auto mb-8">
-                      <p className="text-base md:text-lg">
-                        {user?.role === 'admin'
-                          ? 'اضغط على زر «تقارير» لعرض البطاقات'
-                          : 'اضغط على زر «بيانات» أو «تقارير» لعرض البطاقات'}
-                      </p>
+                      <p className="text-base md:text-lg">اضغط على زر <span className="font-bold text-blue-700">«بيانات»</span> أو <span className="font-bold text-blue-700">«تقارير»</span> لعرض البطاقات</p>
                     </div>
                   )}
 
@@ -1996,7 +4466,7 @@ function App() {
                   <div className="flex flex-col gap-6 md:gap-8 w-full mb-12">
                     
                     {/* صف البطاقات البيضاء */}
-                    {selectedCategory === 'بيانات' && user?.role !== 'admin' && (
+                    {selectedCategory === 'بيانات' && (
                       <motion.div 
                         variants={containerVariants}
                         initial="hidden"
@@ -2114,67 +4584,121 @@ function App() {
             </motion.div>
           )}
 
-          {/* منطقة عرض جدول الإكسيل */}
+          {/* منطقة عرض جدول الإكسيل - شاشة كاملة تأخذ كامل طول وعرض الموقع */}
           {activeSheet && (
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`w-full bg-white shadow-sm border border-blue-100 p-4 md:p-8 flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 rounded-none overflow-hidden h-screen m-0' : 'rounded-2xl mt-4'}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="fixed inset-0 z-50 bg-slate-100 flex flex-col w-screen h-screen overflow-hidden p-2 sm:p-4 md:p-5 m-0 rounded-none"
             >
-              <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 border-b border-blue-50 pb-4 shrink-0">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-2xl md:text-3xl font-extrabold text-blue-950 flex items-center gap-3">
-                    <FileText className="text-blue-500" size={32} />
-                    {activeSheet.title}
-                  </h2>
+              <div className="flex flex-col lg:flex-row justify-between items-center mb-3 gap-3 bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm shrink-0">
+                <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 shadow-sm">
+                      <FileText size={26} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl md:text-2xl font-black text-slate-800 leading-tight">
+                        {activeSheet.title}
+                      </h2>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs bg-blue-50 text-blue-700 font-bold px-2.5 py-0.5 rounded-full border border-blue-100">
+                          {user.complex || complexName}
+                        </span>
+                        <span className="text-xs bg-emerald-50 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full border border-emerald-100">
+                          {academicYear}
+                        </span>
+                        <span className="text-xs bg-slate-100 text-slate-600 font-bold px-2.5 py-0.5 rounded-full">
+                          {activeSheet.data.length} صف × {activeSheet.data[0]?.length || 0} عمود
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                   {history.length > 0 && (
                     <button 
                       onClick={handleUndo}
-                      className="flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-bold transition-all"
+                      className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all mr-2"
                       title="تراجع عن آخر تعديل"
                     >
-                      <Undo2 size={16} />
+                      <Undo2 size={15} />
                       تراجع
                     </button>
                   )}
-                  
+                </div>
+
+                {/* شريط البحث السريع والتحكم في العرض وأزرار الحفظ والرجوع */}
+                <div className="flex flex-wrap items-center justify-between lg:justify-end gap-3 w-full lg:w-auto">
+                  {/* بحث في الجدول */}
+                  <div className="relative flex-1 sm:w-64 max-w-xs">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <input 
+                      type="text"
+                      value={sheetSearchQuery}
+                      onChange={(e) => setSheetSearchQuery(e.target.value)}
+                      placeholder="بحث سريع في بيانات الجدول..."
+                      className="w-full pr-9 pl-7 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800 transition-all"
+                    />
+                    {sheetSearchQuery && (
+                      <button 
+                        onClick={() => setSheetSearchQuery('')}
+                        className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
                   {/* Zoom Controls */}
-                  <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1 mr-4 border border-slate-200">
-                    <button onClick={() => setZoom(prev => Math.min(prev + 0.2, 2))} className="p-1.5 hover:bg-white rounded text-slate-700 transition-colors shadow-sm" title="تكبير العرض">
+                  <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 border border-slate-200 shadow-sm">
+                    <button 
+                      onClick={() => setZoom(prev => Math.min(Number((prev + 0.1).toFixed(1)), 2))} 
+                      className="p-1.5 hover:bg-white rounded-lg text-slate-700 transition-colors shadow-sm" 
+                      title="تكبير العرض"
+                    >
                       <ZoomIn size={16} />
                     </button>
-                    <span className="text-slate-700 text-sm font-bold w-12 text-center">{Math.round(zoom * 100)}%</span>
-                    <button onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.4))} className="p-1.5 hover:bg-white rounded text-slate-700 transition-colors shadow-sm" title="تصغير العرض">
+                    <button 
+                      onClick={() => setZoom(1)} 
+                      className="text-slate-700 text-xs font-bold px-2 py-1 hover:bg-white rounded-lg transition-colors"
+                      title="إعادة ضبط الحجم الطبيعي 100%"
+                    >
+                      {Math.round(zoom * 100)}%
+                    </button>
+                    <button 
+                      onClick={() => setZoom(prev => Math.max(Number((prev - 0.1).toFixed(1)), 0.5))} 
+                      className="p-1.5 hover:bg-white rounded-lg text-slate-700 transition-colors shadow-sm" 
+                      title="تصغير العرض"
+                    >
                       <ZoomOut size={16} />
                     </button>
-                    <div className="w-px h-4 bg-slate-300 mx-1"></div>
-                    <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-1.5 hover:bg-white rounded text-slate-700 transition-colors shadow-sm" title={isFullscreen ? "تصغير النافذة" : "ملء الشاشة"}>
-                      <Maximize size={16} />
-                    </button>
                   </div>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                  {user.role !== 'admin' && (
-                    <button 
-                      onClick={handleSaveToOriginal}
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all"
-                    >
-                      <Save size={18} />
-                      حفظ التعديلات في الملف
-                    </button>
-                  )}
+
                   <button 
-                    onClick={() => setActiveSheet(null)}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all"
+                    onClick={handleSaveToOriginal}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs md:text-sm font-bold shadow-sm hover:shadow-md transition-all"
                   >
-                    رجوع للوحة التحكم
-                    <ArrowRight size={18} />
+                    <Save size={16} />
+                    حفظ التعديلات
+                  </button>
+
+                  {/* زر الرجوع البارز */}
+                  <button 
+                    onClick={() => {
+                      setActiveSheet(null);
+                      setSheetSearchQuery('');
+                      setZoom(1);
+                    }}
+                    className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs md:text-sm font-bold shadow-md hover:shadow-lg transition-all"
+                  >
+                    <span>رجوع للوحة التحكم</span>
+                    <ArrowRight size={17} />
                   </button>
                 </div>
               </div>
 
               {/* شريط الأدوات (يظهر عند تحديد خلايا) */}
-              {selectedCells.size > 0 && user.role !== 'admin' && (
+              {selectedCells.size > 0 && (
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -2384,7 +4908,7 @@ function App() {
                   )}
                 </motion.div>
               )}
-              
+
               {renderTable()}
             </motion.div>
           )}
