@@ -10,7 +10,7 @@ import {
   ChevronDown, Undo2, PaintBucket, Type, Combine, X, Eraser, Grid3X3, Columns, Rows, Image as ImageIcon,
   Shapes, Circle, Square, Triangle, ArrowLeft, ArrowUp, ArrowDown, Star,
   Bold, AlignLeft, AlignCenter, AlignRight, Plus, Minus, ZoomIn, ZoomOut, ChevronUp, Split, Eye, EyeOff, Edit2, Check, Search, Minimize2, Sparkles,
-  Mail, Globe, BookOpen, Award
+  Mail, Globe, BookOpen, Award, Landmark, CreditCard, Copy
 } from 'lucide-react';
 
 interface ActiveSheetData {
@@ -285,6 +285,146 @@ function InCellEmailEditor({
   );
 }
 
+const BANK_OPTIONS = [
+  'بنك الإنماء',
+  'بنك الراجحي',
+  'بنك الأهلي'
+];
+
+function InCellIbanEditor({
+  initialValue,
+  onSave,
+  onCancel
+}: {
+  initialValue: string;
+  onSave: (val: string) => void;
+  onCancel: () => void;
+}) {
+  const getCleanIban = (raw: string) => {
+    const digits = (raw || '').toUpperCase().replace(/^SA/i, '').replace(/[^0-9]/g, '').slice(0, 22);
+    return `SA${digits}`;
+  };
+
+  const [val, setVal] = useState(() => getCleanIban(initialValue));
+  const [copied, setCopied] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isReadyRef = useRef(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      isReadyRef.current = true;
+      if (inputRef.current) {
+        inputRef.current.focus();
+        const len = inputRef.current.value.length;
+        inputRef.current.setSelectionRange(len, len);
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value.toUpperCase();
+    if (!raw.startsWith('SA')) {
+      const digitsOnly = raw.replace(/[^0-9]/g, '').slice(0, 22);
+      raw = `SA${digitsOnly}`;
+    } else {
+      const digitsOnly = raw.slice(2).replace(/[^0-9]/g, '').slice(0, 22);
+      raw = `SA${digitsOnly}`;
+    }
+    setVal(raw);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      onSave(val);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      onCancel();
+    } else if (e.key === 'Backspace') {
+      const el = inputRef.current;
+      if (el && el.selectionStart !== null && el.selectionStart <= 2 && el.selectionEnd !== null && el.selectionEnd <= 2) {
+        e.preventDefault();
+      }
+    }
+  };
+
+  const handleBlur = (e: React.FocusEvent) => {
+    if (!isReadyRef.current) return;
+    const related = e.relatedTarget as Node | null;
+    if (containerRef.current && related && containerRef.current.contains(related)) {
+      return;
+    }
+    onSave(val);
+  };
+
+  return (
+    <div 
+      ref={containerRef}
+      className="relative w-full min-w-[260px] flex items-center justify-center p-1 z-50 bg-white rounded-lg shadow-xl border-2 border-emerald-500"
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+    >
+      <div className="w-full flex items-center bg-slate-50 rounded-lg overflow-hidden border border-slate-200 focus-within:ring-2 focus-within:ring-emerald-400">
+        <input
+          ref={inputRef}
+          type="text"
+          dir="ltr"
+          value={val}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          className="flex-1 text-left font-mono px-3 py-1.5 text-xs md:text-sm font-black bg-white text-slate-900 focus:outline-none tracking-widest"
+          placeholder="SA0000000000000000000000"
+        />
+        <div className="flex items-center px-1.5 gap-1 bg-white border-r border-slate-200 shrink-0">
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              navigator.clipboard.writeText(val);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            }}
+            className="p-1 hover:bg-emerald-50 text-emerald-700 rounded transition-colors cursor-pointer"
+            title="نسخ الآيبان كاملاً مع SA"
+          >
+            {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onSave(val);
+            }}
+            className="p-1 hover:bg-emerald-100 text-emerald-600 rounded transition-colors cursor-pointer"
+            title="حفظ التعديل (Enter)"
+          >
+            <Check size={14} />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onCancel();
+            }}
+            className="p-1 hover:bg-rose-100 text-rose-600 rounded transition-colors cursor-pointer"
+            title="إلغاء (Escape)"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function InCellGeneralEditor({
   initialValue,
   onSave,
@@ -475,11 +615,18 @@ function App() {
   const [quotaPicker, setQuotaPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
   const [nationalityPicker, setNationalityPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
   const [specializationPicker, setSpecializationPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
+  const [subjectPicker, setSubjectPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
+  const [bankPicker, setBankPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
   const [qualificationPicker, setQualificationPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
   const [editingCell, setEditingCell] = useState<{ r: number, c: number, value: string } | null>(null);
   const [customNationalityInput, setCustomNationalityInput] = useState('');
   const [customSpecializationInput, setCustomSpecializationInput] = useState('');
+  const [customSubjectInput, setCustomSubjectInput] = useState('');
+  const [customBankInput, setCustomBankInput] = useState('');
   const [customQualificationInput, setCustomQualificationInput] = useState('');
+  const [customBankOptions, setCustomBankOptions] = useState<string[]>([]);
+  const [customSubjectOptions, setCustomSubjectOptions] = useState<string[]>([]);
+  const [copiedCellKey, setCopiedCellKey] = useState<string | null>(null);
   const [pickerSearchQuery, setPickerSearchQuery] = useState('');
   const [activeReportCategory, setActiveReportCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -732,13 +879,14 @@ function App() {
       const cached = modifiedSheets[title];
       const hasFemale = cached.data?.some((r: any[]) => r && r.some((c: any) => String(c).includes('أثير محمد بن سعد الحربي')));
       const hasSectionCol = cached.data?.[2]?.some((c: any) => String(c).trim() === 'القسم');
+      const hasIbanCol = cached.data?.some((r: any[]) => r && r.some((c: any) => String(c || '').trim() === 'IBANالبنكي'));
       const isTeacherCard = title === 'بيانات الكادر التعليمي' || title === 'بيانات المعلمين' || title === 'المعلمين';
-      const isTeacherValid = !isTeacherCard || (hasFemale && hasSectionCol);
+      const isTeacherValid = !isTeacherCard || (hasFemale && hasSectionCol && hasIbanCol);
 
       const hasAdminData = cached.data?.some((r: any[]) => r && r.some((c: any) => String(c).includes('عمرو عبدالتواب عطا'))) &&
                            cached.data?.some((r: any[]) => r && r.some((c: any) => String(c).includes('ريما فهد القحطاني')));
       const isAdminCard = title === 'بيانات الكادر الإداري' || title === 'ادارة المجمع' || title === 'إدارة المجمع';
-      const isAdminValid = !isAdminCard || hasAdminData;
+      const isAdminValid = !isAdminCard || (hasAdminData && hasIbanCol);
 
       if (isTeacherValid && isAdminValid) {
         setHistory([]);
@@ -985,6 +1133,89 @@ function App() {
         }
       }
       
+      // التأكد من وجود عامود "IBANالبنكي" وعامود "البنك" مباشرة بعد اسم الموظف
+      let empHeaderIdx = -1;
+      for (let r = 0; r < Math.min(5, normalizedData.length); r++) {
+        if (normalizedData[r] && normalizedData[r].some(c => {
+          const s = String(c || '').trim();
+          return s.includes('اسم الموظف') || s.includes('اسم الموظفة') || s === 'اسم الموظف رباعي';
+        })) {
+          empHeaderIdx = r;
+          break;
+        }
+      }
+      if (empHeaderIdx === -1) {
+        for (let r = 0; r < Math.min(5, normalizedData.length); r++) {
+          if (normalizedData[r] && normalizedData[r].some(c => String(c || '').trim().includes('اسم'))) {
+            empHeaderIdx = r;
+            break;
+          }
+        }
+      }
+
+      if (empHeaderIdx !== -1 && normalizedData[empHeaderIdx]) {
+        const hasIbanCol = normalizedData[empHeaderIdx].some(c => {
+          const s = String(c || '').trim();
+          return s === 'IBANالبنكي' || s === 'IBAN البنكي' || s === 'IBAN' || s === 'الايبان';
+        });
+
+        if (!hasIbanCol) {
+          let nameColIdx = normalizedData[empHeaderIdx].findIndex(c => String(c || '').trim().includes('اسم'));
+          if (nameColIdx === -1) nameColIdx = 2;
+
+          let insertColIdx = nameColIdx + 1;
+          // إذا كان عامود القسم موجوداً مباشرة بعد الاسم، نضع الآيبان والبنك بعد عامود القسم
+          if (normalizedData[empHeaderIdx][insertColIdx] && String(normalizedData[empHeaderIdx][insertColIdx]).trim() === 'القسم') {
+            insertColIdx = nameColIdx + 2;
+          }
+
+          // تحديث الدمج للأعمدة
+          merges = merges.map(m => {
+            let s = { ...m.s };
+            let e = { ...m.e };
+            if (s.c >= insertColIdx) s.c += 2;
+            if (e.c >= insertColIdx) e.c += 2;
+            return { s, e };
+          });
+
+          normalizedData.forEach((row, rIdx) => {
+            if (rIdx < empHeaderIdx) {
+              row.splice(insertColIdx, 0, "", "");
+            } else if (rIdx === empHeaderIdx) {
+              row.splice(insertColIdx, 0, "IBANالبنكي", "البنك");
+            } else {
+              const rowStr = row.map(c => String(c || '')).join(' ');
+              const isSubHeader = rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين") || rowStr.includes("بيانات  الإداريات") || rowStr.includes("إدارة المجمع");
+              const hasRowData = row.some((c, idx) => idx !== 0 && c !== "");
+
+              if (isSubHeader || !hasRowData) {
+                row.splice(insertColIdx, 0, "", "");
+              } else {
+                row.splice(insertColIdx, 0, "SA", "");
+              }
+            }
+          });
+        } else {
+          // إذا كان عامود الآيبان موجوداً، التأكد من أن كل خلايا صفوف الموظفين تبدأ بـ SA
+          const ibanIdx = normalizedData[empHeaderIdx].findIndex(c => {
+            const s = String(c || '').trim();
+            return s === 'IBANالبنكي' || s === 'IBAN البنكي' || s === 'IBAN';
+          });
+          if (ibanIdx !== -1) {
+            for (let r = empHeaderIdx + 1; r < normalizedData.length; r++) {
+              const row = normalizedData[r];
+              if (!row) continue;
+              const rowStr = row.map(c => String(c || '')).join(' ');
+              const isSubHeader = rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين") || rowStr.includes("بيانات  الإداريات") || rowStr.includes("إدارة المجمع");
+              const hasRowData = row.some((c, idx) => idx !== 0 && c !== "");
+              if (hasRowData && !isSubHeader && (!row[ibanIdx] || row[ibanIdx] === '')) {
+                row[ibanIdx] = "SA";
+              }
+            }
+          }
+        }
+      }
+
       // تصفير جميع الحالات عند فتح شيت جديد
       setHistory([]);
       setSelectedCells(new Set());
@@ -1419,9 +1650,13 @@ function App() {
     setNationalityPicker(null);
     setSpecializationPicker(null);
     setQualificationPicker(null);
+    setSubjectPicker(null);
+    setBankPicker(null);
     setCustomNationalityInput('');
     setCustomSpecializationInput('');
     setCustomQualificationInput('');
+    setCustomSubjectInput('');
+    setCustomBankInput('');
     setPickerSearchQuery('');
   };
 
@@ -1679,6 +1914,185 @@ function App() {
     setPickerSearchQuery('');
   };
 
+  const subjectColIndex = React.useMemo(() => {
+    if (!activeSheet) return -1;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row) {
+        const idx = row.findIndex(c => {
+          const s = String(c || '').trim();
+          return s === 'مادة التدريس' || s.includes('مادة التدريس');
+        });
+        if (idx !== -1) return idx;
+      }
+    }
+    return -1;
+  }, [activeSheet]);
+
+  const isSubjectCell = (rIdx: number, cIdx: number) => {
+    if (!activeSheet || subjectColIndex === -1 || cIdx !== subjectColIndex) return false;
+    if (rIdx <= headerRowIndex) return false;
+    const row = activeSheet.data[rIdx];
+    if (!row) return false;
+    const hasRowContent = row.some((c, idx) => idx !== cIdx && c !== "" && c != null);
+    if (!hasRowContent) return false;
+    const rowStr = row.map(c => String(c || "")).join(" ");
+    if (rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين")) {
+      return false;
+    }
+    return true;
+  };
+
+  const subjectOptions = React.useMemo(() => {
+    const items: string[] = [];
+    if (activeSheet && subjectColIndex !== -1) {
+      for (let r = 0; r < activeSheet.data.length; r++) {
+        const row = activeSheet.data[r];
+        if (!row) continue;
+        const val = row[subjectColIndex];
+        if (val) items.push(String(val).trim());
+      }
+    }
+    const blacklist = ['غير سعودي', 'سعودي', 'مادة التدريس', 'المادة', 'التخصص', 'المؤهل', 'المعلمين', 'المعلمات', 'الإداريين', 'ادارة', 'بيانات', 'عدد'];
+    return cleanAndDeduplicateOptions([...items, ...customSubjectOptions], blacklist);
+  }, [activeSheet, subjectColIndex, customSubjectOptions]);
+
+  const handleSelectSubjectOption = (rIndex: number, cIndex: number, option: string) => {
+    if (!activeSheet) return;
+    setHistory(prev => [...prev, activeSheet]);
+
+    const newData = activeSheet.data.map(row => [...row]);
+    const targetKeys = new Set<string>();
+    if (selectedCells.has(`${rIndex},${cIndex}`)) {
+      selectedCells.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        if (c === cIndex && isSubjectCell(r, c)) {
+          targetKeys.add(key);
+        }
+      });
+    }
+    if (targetKeys.size === 0) {
+      targetKeys.add(`${rIndex},${cIndex}`);
+    }
+
+    targetKeys.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (newData[r] && newData[r][c] !== undefined) {
+        newData[r][c] = option;
+      }
+    });
+
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+    setSubjectPicker(null);
+    setCustomSubjectInput('');
+    setPickerSearchQuery('');
+  };
+
+  const ibanColIndex = React.useMemo(() => {
+    if (!activeSheet) return -1;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row) {
+        const idx = row.findIndex(c => {
+          const s = String(c || '').trim();
+          return s === 'IBANالبنكي' || s === 'IBAN البنكي' || s === 'IBAN' || s === 'الايبان' || s === 'الآيبان' || s.includes('IBAN') || s.includes('ايبان');
+        });
+        if (idx !== -1) return idx;
+      }
+    }
+    return -1;
+  }, [activeSheet]);
+
+  const isIbanCell = (rIdx: number, cIdx: number) => {
+    if (!activeSheet) return false;
+    if (rIdx <= headerRowIndex) return false;
+    if (ibanColIndex === -1 || cIdx !== ibanColIndex) return false;
+    const row = activeSheet.data[rIdx];
+    if (!row) return false;
+    const rowStr = row.map(c => String(c || "")).join(" ");
+    if (rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين")) {
+      return false;
+    }
+    return true;
+  };
+
+  const bankColIndex = React.useMemo(() => {
+    if (!activeSheet) return -1;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row) {
+        const idx = row.findIndex(c => {
+          const s = String(c || '').trim();
+          return s === 'البنك' || (s.includes('البنك') && !s.includes('IBAN') && !s.includes('ايبان'));
+        });
+        if (idx !== -1) return idx;
+      }
+    }
+    return -1;
+  }, [activeSheet]);
+
+  const isBankCell = (rIdx: number, cIdx: number) => {
+    if (!activeSheet || bankColIndex === -1 || cIdx !== bankColIndex) return false;
+    if (rIdx <= headerRowIndex) return false;
+    const row = activeSheet.data[rIdx];
+    if (!row) return false;
+    const hasRowContent = row.some((c, idx) => idx !== cIdx && c !== "" && c != null);
+    if (!hasRowContent) return false;
+    const rowStr = row.map(c => String(c || "")).join(" ");
+    if (rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين")) {
+      return false;
+    }
+    return true;
+  };
+
+  const bankOptions = React.useMemo(() => {
+    if (!activeSheet || bankColIndex === -1) return [...BANK_OPTIONS, ...customBankOptions];
+    const items: string[] = [];
+    for (let r = 0; r < activeSheet.data.length; r++) {
+      const row = activeSheet.data[r];
+      if (!row) continue;
+      const val = row[bankColIndex];
+      if (val) items.push(String(val));
+    }
+    const blacklist = ['البنك', 'IBAN', 'IBANالبنكي', 'بيانات', 'المعلمات', 'المعلمين', 'الإداريين'];
+    return cleanAndDeduplicateOptions([...BANK_OPTIONS, ...customBankOptions, ...items], blacklist);
+  }, [activeSheet, bankColIndex, customBankOptions]);
+
+  const handleSelectBankOption = (rIndex: number, cIndex: number, option: string) => {
+    if (!activeSheet) return;
+    setHistory(prev => [...prev, activeSheet]);
+
+    const newData = activeSheet.data.map(row => [...row]);
+    const targetKeys = new Set<string>();
+    if (selectedCells.has(`${rIndex},${cIndex}`)) {
+      selectedCells.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        if (c === cIndex && isBankCell(r, c)) {
+          targetKeys.add(key);
+        }
+      });
+    }
+    if (targetKeys.size === 0) {
+      targetKeys.add(`${rIndex},${cIndex}`);
+    }
+
+    targetKeys.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (newData[r] && newData[r][c] !== undefined) {
+        newData[r][c] = option;
+      }
+    });
+
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+    setBankPicker(null);
+    setCustomBankInput('');
+    setPickerSearchQuery('');
+  };
+
   const emailColIndex = React.useMemo(() => {
     if (!activeSheet) return -1;
     for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
@@ -1842,6 +2256,30 @@ function App() {
         left: rect.left,
         right: rect.right
       });
+    } else if (isSubjectCell(rIndex, cIndex)) {
+      closeAllPickers();
+      const targetEl = (e.target as HTMLElement).closest('td') || (e.currentTarget as HTMLElement);
+      const rect = targetEl.getBoundingClientRect();
+      setSubjectPicker({
+        r: rIndex,
+        c: cIndex,
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      });
+    } else if (isBankCell(rIndex, cIndex)) {
+      closeAllPickers();
+      const targetEl = (e.target as HTMLElement).closest('td') || (e.currentTarget as HTMLElement);
+      const rect = targetEl.getBoundingClientRect();
+      setBankPicker({
+        r: rIndex,
+        c: cIndex,
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      });
     } else if (isQualificationCell(rIndex, cIndex)) {
       closeAllPickers();
       const targetEl = (e.target as HTMLElement).closest('td') || (e.currentTarget as HTMLElement);
@@ -1854,7 +2292,7 @@ function App() {
         left: rect.left,
         right: rect.right
       });
-    } else if (isEmailCell(rIndex, cIndex)) {
+    } else if (isIbanCell(rIndex, cIndex) || isEmailCell(rIndex, cIndex)) {
       closeAllPickers();
       if (editingCell && (editingCell.r !== rIndex || editingCell.c !== cIndex)) {
         commitCellEdit(editingCell.r, editingCell.c, editingCell.value);
@@ -2717,7 +3155,13 @@ function App() {
                         </div>
                       )}
                       {editingCell && editingCell.r === rowIdx && editingCell.c === colIdx ? (
-                        isEmailCell(rowIdx, colIdx) ? (
+                        isIbanCell(rowIdx, colIdx) ? (
+                          <InCellIbanEditor
+                            initialValue={editingCell.value}
+                            onSave={(val) => commitCellEdit(rowIdx, colIdx, val)}
+                            onCancel={() => setEditingCell(null)}
+                          />
+                        ) : isEmailCell(rowIdx, colIdx) ? (
                           <InCellEmailEditor
                             initialValue={editingCell.value}
                             onSave={(val) => commitCellEdit(rowIdx, colIdx, val)}
@@ -2954,6 +3398,106 @@ function App() {
                                 </span>
                               );
                             }
+                          })()}
+                        </div>
+                      ) : isSubjectCell(rowIdx, colIdx) ? (
+                        <div className="w-full flex items-center justify-center gap-1.5 py-1 pointer-events-none select-none">
+                          {(() => {
+                            const strVal = String(cell != null ? cell : '').trim();
+                            if (strVal !== '') {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-bold bg-violet-50 text-violet-900 border border-violet-200 shadow-sm">
+                                  <GraduationCap size={13} className="text-violet-600" />
+                                  <span>{strVal}</span>
+                                  <ChevronDown size={12} className="opacity-60" />
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-blue-600 text-xs font-semibold px-2 py-1 rounded-md transition-colors border border-dashed border-slate-300 bg-slate-50/70">
+                                  <span>اختر</span>
+                                  <ChevronDown size={13} className="text-slate-400" />
+                                </span>
+                              );
+                            }
+                          })()}
+                        </div>
+                      ) : isBankCell(rowIdx, colIdx) ? (
+                        <div className="w-full flex items-center justify-center gap-1.5 py-1 pointer-events-none select-none">
+                          {(() => {
+                            const strVal = String(cell != null ? cell : '').trim();
+                            if (strVal !== '') {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-bold bg-amber-50 text-amber-900 border border-amber-300 shadow-sm">
+                                  <Landmark size={13} className="text-amber-700" />
+                                  <span>{strVal}</span>
+                                  <ChevronDown size={12} className="opacity-60" />
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-blue-600 text-xs font-semibold px-2 py-1 rounded-md transition-colors border border-dashed border-slate-300 bg-slate-50/70">
+                                  <Landmark size={12} />
+                                  <span>اختر البنك</span>
+                                  <ChevronDown size={13} className="text-slate-400" />
+                                </span>
+                              );
+                            }
+                          })()}
+                        </div>
+                      ) : isIbanCell(rowIdx, colIdx) ? (
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            closeAllPickers();
+                            setEditingCell({ r: rowIdx, c: colIdx, value: String(cell ?? 'SA') });
+                          }}
+                          className="w-full flex items-center justify-center gap-1.5 py-1 px-1 select-none group/iban cursor-pointer relative"
+                          title="انقر لتعديل رقم الآيبان"
+                        >
+                          {(() => {
+                            const strVal = String(cell != null ? cell : '').trim();
+                            const digitsOnly = strVal.replace(/^SA/i, '').replace(/\s+/g, '');
+                            const fullIban = `SA${digitsOnly}`;
+                            const isCellCopied = copiedCellKey === `${rowIdx},${colIdx}`;
+
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs md:text-sm font-mono font-bold text-emerald-950 bg-emerald-50 border border-emerald-300 shadow-sm group-hover/iban:border-emerald-500 transition-colors" dir="ltr">
+                                  <span className="text-emerald-700 font-black">SA</span>
+                                  {digitsOnly ? (
+                                    <span className="tracking-wider">{digitsOnly}</span>
+                                  ) : (
+                                    <span className="text-slate-400 font-sans text-xs">أدخل الأرقام</span>
+                                  )}
+                                </span>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(fullIban);
+                                    setCopiedCellKey(`${rowIdx},${colIdx}`);
+                                    setTimeout(() => setCopiedCellKey(null), 1500);
+                                  }}
+                                  className={`p-1 rounded transition-all cursor-pointer ${
+                                    isCellCopied
+                                      ? 'bg-emerald-600 text-white shadow-sm'
+                                      : 'bg-white hover:bg-emerald-100 text-emerald-700 border border-emerald-200 opacity-60 group-hover/iban:opacity-100'
+                                  }`}
+                                  title="نسخ الآيبان كاملاً مع SA"
+                                >
+                                  {isCellCopied ? <Check size={12} /> : <Copy size={12} />}
+                                </button>
+
+                                {isCellCopied && (
+                                  <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-sans font-bold px-2 py-0.5 rounded-md shadow-md z-30 pointer-events-none animate-in fade-in">
+                                    تم نسخ الآيبان مع SA!
+                                  </span>
+                                )}
+                              </div>
+                            );
                           })()}
                         </div>
                       ) : isEmailCell(rowIdx, colIdx) ? (
@@ -3779,6 +4323,275 @@ function App() {
                     type="button"
                     onClick={() => handleSelectQualificationOption(qualificationPicker.r, qualificationPicker.c, "")}
                     className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Eraser size={13} />
+                    <span>مسح القيمة</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* نافذة خيارات مادة التدريس المنبثقة مباشرة فوق الخلية */}
+        {subjectPicker && activeSheet && (
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[0.5px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSubjectPicker(null);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <div 
+              className="fixed bg-white rounded-2xl shadow-2xl border-2 border-violet-500 p-3 min-w-[260px] max-w-[320px] text-right font-sans ring-4 ring-violet-500/10 z-[10000] animate-in fade-in zoom-in-95 duration-100"
+              style={{
+                top: subjectPicker.bottom + 320 > window.innerHeight 
+                  ? Math.max(10, subjectPicker.top - 320) 
+                  : subjectPicker.bottom + 4,
+                right: Math.max(12, Math.min(window.innerWidth - 290, window.innerWidth - subjectPicker.right)),
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
+                  <GraduationCap size={15} className="text-violet-600" />
+                  <span>مادة التدريس</span>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setSubjectPicker(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* بحث سريع داخل مواد التدريس */}
+              <div className="relative mb-2">
+                <input
+                  type="text"
+                  value={pickerSearchQuery}
+                  onChange={(e) => setPickerSearchQuery(e.target.value)}
+                  placeholder="ابحث في مواد التدريس..."
+                  className="w-full pl-2 pr-7 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400"
+                />
+                <Search size={13} className="absolute right-2 top-2.5 text-slate-400" />
+              </div>
+
+              <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar p-0.5">
+                {subjectOptions
+                  .filter(subj => !pickerSearchQuery.trim() || subj.toLowerCase().includes(pickerSearchQuery.trim().toLowerCase()))
+                  .map(subj => {
+                    const cellVal = String(activeSheet.data[subjectPicker.r]?.[subjectPicker.c] || '').trim();
+                    const isSelected = cellVal === subj;
+                    return (
+                      <button
+                        type="button"
+                        key={subj}
+                        onClick={() => handleSelectSubjectOption(subjectPicker.r, subjectPicker.c, subj)}
+                        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                          isSelected
+                            ? 'bg-violet-50 text-violet-900 border-violet-300 shadow-sm ring-1 ring-violet-400'
+                            : 'bg-slate-50 hover:bg-violet-50 text-slate-700 hover:text-violet-900 border-slate-100 hover:border-violet-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+                          <span>{subj}</span>
+                        </div>
+                        {isSelected && <Check size={14} className="text-violet-600" />}
+                      </button>
+                    );
+                  })}
+                {subjectOptions.length === 0 && (
+                  <div className="text-center py-4 text-xs text-slate-400">
+                    لا توجد خيارات حالية
+                  </div>
+                )}
+              </div>
+
+              {/* خيار إدخال مادة يدوية خاص بالمسؤول فقط */}
+              {user?.role === 'admin' && (
+                <div className="border-t border-slate-200 pt-2 mt-2">
+                  <div className="text-[11px] font-bold text-blue-900 mb-1 flex items-center gap-1">
+                    <UserCog size={13} className="text-blue-600" />
+                    <span>إضافة مادة جديدة (خاص بالمسؤول):</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={customSubjectInput}
+                      onChange={(e) => setCustomSubjectInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && customSubjectInput.trim()) {
+                          const newSubj = customSubjectInput.trim();
+                          setCustomSubjectOptions(prev => prev.includes(newSubj) ? prev : [...prev, newSubj]);
+                          handleSelectSubjectOption(subjectPicker.r, subjectPicker.c, newSubj);
+                        }
+                      }}
+                      placeholder="اكتب اسم المادة..."
+                      className="flex-1 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customSubjectInput.trim()) {
+                          const newSubj = customSubjectInput.trim();
+                          setCustomSubjectOptions(prev => prev.includes(newSubj) ? prev : [...prev, newSubj]);
+                          handleSelectSubjectOption(subjectPicker.r, subjectPicker.c, newSubj);
+                        }
+                      }}
+                      disabled={!customSubjectInput.trim()}
+                      className="px-2.5 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      إضافة
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeSheet.data[subjectPicker.r]?.[subjectPicker.c] && (
+                <div className="border-t border-slate-100 pt-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectSubjectOption(subjectPicker.r, subjectPicker.c, "")}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                  >
+                    <Eraser size={13} />
+                    <span>مسح القيمة</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* نافذة خيارات البنك المنبثقة مباشرة فوق الخلية */}
+        {bankPicker && activeSheet && (
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[0.5px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setBankPicker(null);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <div 
+              className="fixed bg-white rounded-2xl shadow-2xl border-2 border-amber-500 p-3 min-w-[260px] max-w-[320px] text-right font-sans ring-4 ring-amber-500/10 z-[10000] animate-in fade-in zoom-in-95 duration-100"
+              style={{
+                top: bankPicker.bottom + 300 > window.innerHeight 
+                  ? Math.max(10, bankPicker.top - 300) 
+                  : bankPicker.bottom + 4,
+                right: Math.max(12, Math.min(window.innerWidth - 290, window.innerWidth - bankPicker.right)),
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
+                  <Landmark size={15} className="text-amber-600" />
+                  <span>اسم البنك</span>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setBankPicker(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* بحث سريع داخل البنوك */}
+              <div className="relative mb-2">
+                <input
+                  type="text"
+                  value={pickerSearchQuery}
+                  onChange={(e) => setPickerSearchQuery(e.target.value)}
+                  placeholder="ابحث في البنوك..."
+                  className="w-full pl-2 pr-7 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+                <Search size={13} className="absolute right-2 top-2.5 text-slate-400" />
+              </div>
+
+              <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar p-0.5">
+                {bankOptions
+                  .filter(bank => !pickerSearchQuery.trim() || bank.toLowerCase().includes(pickerSearchQuery.trim().toLowerCase()))
+                  .map(bank => {
+                    const cellVal = String(activeSheet.data[bankPicker.r]?.[bankPicker.c] || '').trim();
+                    const isSelected = cellVal === bank;
+                    return (
+                      <button
+                        type="button"
+                        key={bank}
+                        onClick={() => handleSelectBankOption(bankPicker.r, bankPicker.c, bank)}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs md:text-sm font-bold transition-all border cursor-pointer ${
+                          isSelected
+                            ? 'bg-amber-50 text-amber-900 border-amber-300 shadow-sm ring-1 ring-amber-400'
+                            : 'bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border-slate-100 hover:border-amber-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Landmark size={13} className="text-amber-600" />
+                          <span>{bank}</span>
+                        </div>
+                        {isSelected && <Check size={14} className="text-amber-600" />}
+                      </button>
+                    );
+                  })}
+              </div>
+
+              {/* خيار إدخال بنك جديد خاص بالمسؤول فقط */}
+              {user?.role === 'admin' && (
+                <div className="border-t border-slate-200 pt-2.5 mt-2.5">
+                  <div className="text-[11px] font-bold text-blue-900 mb-1 flex items-center gap-1">
+                    <UserCog size={13} className="text-blue-600" />
+                    <span>إضافة اسم بنك جديد (خاص بالمسؤول):</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={customBankInput}
+                      onChange={(e) => setCustomBankInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && customBankInput.trim()) {
+                          const newBank = customBankInput.trim();
+                          setCustomBankOptions(prev => prev.includes(newBank) ? prev : [...prev, newBank]);
+                          handleSelectBankOption(bankPicker.r, bankPicker.c, newBank);
+                        }
+                      }}
+                      placeholder="اكتب اسم البنك الجديد..."
+                      className="flex-1 px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customBankInput.trim()) {
+                          const newBank = customBankInput.trim();
+                          setCustomBankOptions(prev => prev.includes(newBank) ? prev : [...prev, newBank]);
+                          handleSelectBankOption(bankPicker.r, bankPicker.c, newBank);
+                        }
+                      }}
+                      disabled={!customBankInput.trim()}
+                      className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      إضافة
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeSheet.data[bankPicker.r]?.[bankPicker.c] && (
+                <div className="border-t border-slate-100 pt-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectBankOption(bankPicker.r, bankPicker.c, "")}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                   >
                     <Eraser size={13} />
                     <span>مسح القيمة</span>
@@ -4699,28 +5512,30 @@ function App() {
 
               {/* شريط الأدوات (يظهر عند تحديد خلايا) */}
               {selectedCells.size > 0 && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`bg-slate-800 text-white rounded-xl ${isToolbarCollapsed ? 'p-2 w-max' : 'px-4 py-3'} mb-6 flex flex-wrap items-center gap-4 shadow-md sticky top-4 z-20 border border-slate-700`}
-                >
-                  {isToolbarCollapsed ? (
+                isToolbarCollapsed ? (
+                  <div className="w-full flex justify-center -mb-2 z-20 relative">
                     <button 
                       onClick={() => setIsToolbarCollapsed(false)} 
-                      className="hover:bg-slate-700 p-1 rounded transition-colors text-slate-200 flex items-center justify-center" 
-                      title="إظهار شريط الأدوات"
+                      className="flex items-center gap-1.5 px-3 py-1 bg-white/95 hover:bg-white text-slate-700 hover:text-blue-600 rounded-full border border-slate-300 shadow-sm hover:shadow transition-all text-xs font-bold cursor-pointer" 
+                      title="إظهار شريط أدوات التنسيق"
                     >
-                      <ChevronDown size={20} />
+                      <ChevronDown size={14} className="text-blue-600" />
+                      <span className="text-[11px] text-slate-600">أدوات التنسيق ({selectedCells.size})</span>
                     </button>
-                  ) : (
-                    <>
-                      <button 
-                        onClick={() => setIsToolbarCollapsed(true)} 
-                        className="hover:bg-slate-700 p-1 rounded transition-colors text-slate-200 flex items-center justify-center border-l border-slate-600 pl-3" 
-                        title="طي شريط الأدوات"
-                      >
-                        <ChevronUp size={20} />
-                      </button>
+                  </div>
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-slate-800 text-white rounded-xl px-4 py-2.5 mb-2.5 flex flex-wrap items-center gap-4 shadow-md sticky top-2 z-20 border border-slate-700"
+                  >
+                    <button 
+                      onClick={() => setIsToolbarCollapsed(true)} 
+                      className="hover:bg-slate-700 p-1 rounded transition-colors text-slate-200 flex items-center justify-center border-l border-slate-600 pl-3 cursor-pointer" 
+                      title="طي شريط الأدوات"
+                    >
+                      <ChevronUp size={18} />
+                    </button>
                       <div className="flex items-center gap-2 border-l border-slate-600 pl-4">
                         <span className="text-sm font-bold bg-slate-700 px-2 py-1 rounded-md text-blue-200">{selectedCells.size}</span>
                         <span className="text-sm font-medium">خلايا محددة</span>
@@ -4904,9 +5719,8 @@ function App() {
                       </div>
                     </div>
                   </div>
-                  </>
-                  )}
-                </motion.div>
+                  </motion.div>
+                )
               )}
 
               {renderTable()}
