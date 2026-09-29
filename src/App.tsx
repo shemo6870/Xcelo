@@ -618,14 +618,18 @@ function App() {
   const [subjectPicker, setSubjectPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
   const [bankPicker, setBankPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
   const [qualificationPicker, setQualificationPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
+  const [jobPicker, setJobPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
+  const [affiliationPicker, setAffiliationPicker] = useState<{ r: number, c: number, top: number, bottom: number, left: number, right: number } | null>(null);
   const [editingCell, setEditingCell] = useState<{ r: number, c: number, value: string } | null>(null);
   const [customNationalityInput, setCustomNationalityInput] = useState('');
   const [customSpecializationInput, setCustomSpecializationInput] = useState('');
   const [customSubjectInput, setCustomSubjectInput] = useState('');
   const [customBankInput, setCustomBankInput] = useState('');
+  const [customJobInput, setCustomJobInput] = useState('');
   const [customQualificationInput, setCustomQualificationInput] = useState('');
   const [customBankOptions, setCustomBankOptions] = useState<string[]>([]);
   const [customSubjectOptions, setCustomSubjectOptions] = useState<string[]>([]);
+  const [customJobOptions, setCustomJobOptions] = useState<string[]>([]);
   const [copiedCellKey, setCopiedCellKey] = useState<string | null>(null);
   const [pickerSearchQuery, setPickerSearchQuery] = useState('');
   const [activeReportCategory, setActiveReportCategory] = useState<string | null>(null);
@@ -885,8 +889,9 @@ function App() {
 
       const hasAdminData = cached.data?.some((r: any[]) => r && r.some((c: any) => String(c).includes('عمرو عبدالتواب عطا'))) &&
                            cached.data?.some((r: any[]) => r && r.some((c: any) => String(c).includes('ريما فهد القحطاني')));
+      const hasAffiliationCol = cached.data?.some((r: any[]) => r && r.some((c: any) => String(c || '').trim() === 'تبعية الموظف'));
       const isAdminCard = title === 'بيانات الكادر الإداري' || title === 'ادارة المجمع' || title === 'إدارة المجمع';
-      const isAdminValid = !isAdminCard || (hasAdminData && hasIbanCol);
+      const isAdminValid = !isAdminCard || (hasAdminData && hasIbanCol && hasAffiliationCol);
 
       if (isTeacherValid && isAdminValid) {
         setHistory([]);
@@ -1133,6 +1138,53 @@ function App() {
         }
       }
       
+      // التأكد من وجود عامود "تبعية الموظف" بجانب عامود اسم الموظف في الكادر الإداري
+      if (title === 'بيانات الكادر الإداري' || title === 'ادارة المجمع' || title === 'إدارة المجمع' || sheetName === 'إدارة المجمع') {
+        const headerRowIdx = 1;
+        if (normalizedData[headerRowIdx]) {
+          const hasAffiliationCol = normalizedData[headerRowIdx].some(c => String(c || '').trim() === 'تبعية الموظف');
+          if (!hasAffiliationCol) {
+            let nameColIdx = normalizedData[headerRowIdx].findIndex(c => String(c || '').includes('اسم'));
+            if (nameColIdx === -1) nameColIdx = 1;
+            const insertColIdx = nameColIdx + 1; // مباشرة بجانب عامود اسم الموظف
+
+            // تحديث الدمج للأعمدة التي بعد عامود الاسم
+            merges = merges.map(m => {
+              let s = { ...m.s };
+              let e = { ...m.e };
+              if (s.c >= insertColIdx) s.c++;
+              if (e.c >= insertColIdx) e.c++;
+              return { s, e };
+            });
+
+            // تحديد مؤشرات فواصل الأقسام (إدارة المجمع / بنين / بنات)
+            const maleAdminHeaderIdx = normalizedData.findIndex(r => r && (String(r[0] || '') === 'إداريين' || String(r[1] || '').includes('قسم البنين')));
+            const femaleAdminHeaderIdx = normalizedData.findIndex(r => r && (String(r[0] || '') === 'إداريات' || String(r[1] || '').includes('قسم البنات')));
+
+            normalizedData.forEach((row, rIdx) => {
+              if (rIdx < headerRowIdx) {
+                row.splice(insertColIdx, 0, "");
+              } else if (rIdx === headerRowIdx) {
+                row.splice(insertColIdx, 0, "تبعية الموظف");
+              } else if ((maleAdminHeaderIdx !== -1 && rIdx === maleAdminHeaderIdx) || (femaleAdminHeaderIdx !== -1 && rIdx === femaleAdminHeaderIdx) || (rIdx === 2 && String(row[0] || '') === 'إدارة')) {
+                row.splice(insertColIdx, 0, "");
+              } else {
+                const hasRowData = row.some((c, idx) => idx !== 0 && c !== "");
+                if (!hasRowData) {
+                  row.splice(insertColIdx, 0, "");
+                } else if (femaleAdminHeaderIdx !== -1 && rIdx > femaleAdminHeaderIdx) {
+                  row.splice(insertColIdx, 0, "إداري بنات");
+                } else if (maleAdminHeaderIdx !== -1 && rIdx > maleAdminHeaderIdx) {
+                  row.splice(insertColIdx, 0, "إداري بنين");
+                } else {
+                  row.splice(insertColIdx, 0, "إدارة المجمع");
+                }
+              }
+            });
+          }
+        }
+      }
+
       // التأكد من وجود عامود "IBANالبنكي" وعامود "البنك" مباشرة بعد اسم الموظف
       let empHeaderIdx = -1;
       for (let r = 0; r < Math.min(5, normalizedData.length); r++) {
@@ -1164,8 +1216,11 @@ function App() {
           if (nameColIdx === -1) nameColIdx = 2;
 
           let insertColIdx = nameColIdx + 1;
-          // إذا كان عامود القسم موجوداً مباشرة بعد الاسم، نضع الآيبان والبنك بعد عامود القسم
-          if (normalizedData[empHeaderIdx][insertColIdx] && String(normalizedData[empHeaderIdx][insertColIdx]).trim() === 'القسم') {
+          // إذا كان عامود القسم أو تبعية الموظف موجوداً مباشرة بعد الاسم، نضع الآيبان والبنك بعده
+          if (normalizedData[empHeaderIdx][insertColIdx] && (
+            String(normalizedData[empHeaderIdx][insertColIdx]).trim() === 'القسم' ||
+            String(normalizedData[empHeaderIdx][insertColIdx]).trim() === 'تبعية الموظف'
+          )) {
             insertColIdx = nameColIdx + 2;
           }
 
@@ -1652,11 +1707,14 @@ function App() {
     setQualificationPicker(null);
     setSubjectPicker(null);
     setBankPicker(null);
+    setJobPicker(null);
+    setAffiliationPicker(null);
     setCustomNationalityInput('');
     setCustomSpecializationInput('');
     setCustomQualificationInput('');
     setCustomSubjectInput('');
     setCustomBankInput('');
+    setCustomJobInput('');
     setPickerSearchQuery('');
   };
 
@@ -2093,6 +2151,152 @@ function App() {
     setPickerSearchQuery('');
   };
 
+  const jobColIndex = React.useMemo(() => {
+    if (!activeSheet) return -1;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row) {
+        const idx = row.findIndex(c => {
+          const s = String(c || '').trim();
+          return s === 'الوظيفة' || s.includes('الوظيفة');
+        });
+        if (idx !== -1) return idx;
+      }
+    }
+    return -1;
+  }, [activeSheet]);
+
+  const isJobCell = (rIdx: number, cIdx: number) => {
+    if (!activeSheet || jobColIndex === -1 || cIdx !== jobColIndex) return false;
+    if (rIdx <= headerRowIndex) return false;
+    const row = activeSheet.data[rIdx];
+    if (!row) return false;
+    const hasRowContent = row.some((c, idx) => idx !== cIdx && c !== "" && c != null);
+    if (!hasRowContent) return false;
+    const rowStr = row.map(c => String(c || "")).join(" ");
+    if (rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين") || rowStr.includes("بيانات  الإداريات") || rowStr.includes("إدارة المجمع")) {
+      return false;
+    }
+    return true;
+  };
+
+  const jobOptions = React.useMemo(() => {
+    const items: string[] = [];
+    if (activeSheet && jobColIndex !== -1) {
+      for (let r = 0; r < activeSheet.data.length; r++) {
+        const row = activeSheet.data[r];
+        if (!row) continue;
+        const val = row[jobColIndex];
+        if (val) {
+          const s = String(val).trim();
+          if (s && s !== 'الوظيفة' && s !== '0') items.push(s);
+        }
+      }
+    }
+    const defaultJobs = [
+      'مدير', 'مديرة', 'مدير مرحلة', 'وكيل', 'وكيلة', 'سكرتير', 'سكرتيرة',
+      'مشرف مقيم', 'موجه طلابي', 'موجهة طلابية', 'رائد نشاط', 'رائدة نشاط',
+      'مساعد اداري', 'مساعدة إدارية', 'محضرة مختبر', 'أمين مصادر', 'محاسب', 'حارس', 'مراسل'
+    ];
+    const blacklist = ['الوظيفة', 'بيانات', 'المعلمات', 'المعلمين', 'الإداريين', 'الإداريات', 'إدارة', 'عدد', '0', 'null', 'undefined'];
+    return cleanAndDeduplicateOptions([...items, ...customJobOptions, ...defaultJobs], blacklist);
+  }, [activeSheet, jobColIndex, customJobOptions]);
+
+  const handleSelectJobOption = (rIndex: number, cIndex: number, option: string) => {
+    if (!activeSheet) return;
+    setHistory(prev => [...prev, activeSheet]);
+
+    const newData = activeSheet.data.map(row => [...row]);
+    const targetKeys = new Set<string>();
+    if (selectedCells.has(`${rIndex},${cIndex}`)) {
+      selectedCells.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        if (c === cIndex && isJobCell(r, c)) {
+          targetKeys.add(key);
+        }
+      });
+    }
+    if (targetKeys.size === 0) {
+      targetKeys.add(`${rIndex},${cIndex}`);
+    }
+
+    targetKeys.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (newData[r] && newData[r][c] !== undefined) {
+        newData[r][c] = option;
+      }
+    });
+
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+    setJobPicker(null);
+    setCustomJobInput('');
+    setPickerSearchQuery('');
+  };
+
+  const affiliationColIndex = React.useMemo(() => {
+    if (!activeSheet) return -1;
+    for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
+      const row = activeSheet.data[r];
+      if (row) {
+        const idx = row.findIndex(c => {
+          const s = String(c || '').trim();
+          return s === 'تبعية الموظف' || s.includes('تبعية');
+        });
+        if (idx !== -1) return idx;
+      }
+    }
+    return -1;
+  }, [activeSheet]);
+
+  const isAffiliationCell = (rIdx: number, cIdx: number) => {
+    if (!activeSheet || affiliationColIndex === -1 || cIdx !== affiliationColIndex) return false;
+    if (rIdx <= headerRowIndex) return false;
+    const row = activeSheet.data[rIdx];
+    if (!row) return false;
+    const hasRowContent = row.some((c, idx) => idx !== cIdx && c !== "" && c != null);
+    if (!hasRowContent) return false;
+    const rowStr = row.map(c => String(c || "")).join(" ");
+    if (rowStr.includes("بيانات  المعلمات") || rowStr.includes("بيانات المعلمات") || rowStr.includes("بيانات الإداريين") || rowStr.includes("بيانات  الإداريات") || rowStr.includes("إدارة المجمع")) {
+      return false;
+    }
+    return true;
+  };
+
+  const AFFILIATION_OPTIONS = ['إدارة المجمع', 'إداري بنين', 'إداري بنات'];
+
+  const handleSelectAffiliationOption = (rIndex: number, cIndex: number, option: string) => {
+    if (!activeSheet) return;
+    setHistory(prev => [...prev, activeSheet]);
+
+    const newData = activeSheet.data.map(row => [...row]);
+    const targetKeys = new Set<string>();
+    if (selectedCells.has(`${rIndex},${cIndex}`)) {
+      selectedCells.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        if (c === cIndex && isAffiliationCell(r, c)) {
+          targetKeys.add(key);
+        }
+      });
+    }
+    if (targetKeys.size === 0) {
+      targetKeys.add(`${rIndex},${cIndex}`);
+    }
+
+    targetKeys.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (newData[r] && newData[r][c] !== undefined) {
+        newData[r][c] = option;
+      }
+    });
+
+    const updatedSheet = { ...activeSheet, data: newData };
+    setActiveSheet(updatedSheet);
+    setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: updatedSheet }));
+    setAffiliationPicker(null);
+  };
+
   const emailColIndex = React.useMemo(() => {
     if (!activeSheet) return -1;
     for (let r = 0; r < Math.min(5, activeSheet.data.length); r++) {
@@ -2285,6 +2489,30 @@ function App() {
       const targetEl = (e.target as HTMLElement).closest('td') || (e.currentTarget as HTMLElement);
       const rect = targetEl.getBoundingClientRect();
       setQualificationPicker({
+        r: rIndex,
+        c: cIndex,
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      });
+    } else if (isJobCell(rIndex, cIndex)) {
+      closeAllPickers();
+      const targetEl = (e.target as HTMLElement).closest('td') || (e.currentTarget as HTMLElement);
+      const rect = targetEl.getBoundingClientRect();
+      setJobPicker({
+        r: rIndex,
+        c: cIndex,
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      });
+    } else if (isAffiliationCell(rIndex, cIndex)) {
+      closeAllPickers();
+      const targetEl = (e.target as HTMLElement).closest('td') || (e.currentTarget as HTMLElement);
+      const rect = targetEl.getBoundingClientRect();
+      setAffiliationPicker({
         r: rIndex,
         c: cIndex,
         top: rect.top,
@@ -3439,6 +3667,74 @@ function App() {
                                 <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-blue-600 text-xs font-semibold px-2 py-1 rounded-md transition-colors border border-dashed border-slate-300 bg-slate-50/70">
                                   <Landmark size={12} />
                                   <span>اختر البنك</span>
+                                  <ChevronDown size={13} className="text-slate-400" />
+                                </span>
+                              );
+                            }
+                          })()}
+                        </div>
+                      ) : isJobCell(rowIdx, colIdx) ? (
+                        <div className="w-full flex items-center justify-center gap-1.5 py-1 pointer-events-none select-none">
+                          {(() => {
+                            const strVal = String(cell != null ? cell : '').trim();
+                            if (strVal !== '' && strVal !== '0') {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-bold bg-indigo-50 text-indigo-900 border border-indigo-200 shadow-sm">
+                                  <Briefcase size={13} className="text-indigo-600" />
+                                  <span>{strVal}</span>
+                                  <ChevronDown size={12} className="opacity-60" />
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-blue-600 text-xs font-semibold px-2 py-1 rounded-md transition-colors border border-dashed border-slate-300 bg-slate-50/70">
+                                  <Briefcase size={12} />
+                                  <span>اختر الوظيفة</span>
+                                  <ChevronDown size={13} className="text-slate-400" />
+                                </span>
+                              );
+                            }
+                          })()}
+                        </div>
+                      ) : isAffiliationCell(rowIdx, colIdx) ? (
+                        <div className="w-full flex items-center justify-center gap-1.5 py-1 pointer-events-none select-none">
+                          {(() => {
+                            const strVal = String(cell != null ? cell : '').trim();
+                            if (strVal === 'إدارة المجمع') {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-bold bg-blue-100 text-blue-900 border border-blue-300 shadow-sm">
+                                  <Building2 size={13} className="text-blue-700" />
+                                  <span>إدارة المجمع</span>
+                                  <ChevronDown size={12} className="opacity-60" />
+                                </span>
+                              );
+                            } else if (strVal === 'إداري بنين') {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-sm">
+                                  <Users size={13} className="text-emerald-700" />
+                                  <span>إداري بنين</span>
+                                  <ChevronDown size={12} className="opacity-60" />
+                                </span>
+                              );
+                            } else if (strVal === 'إداري بنات') {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-bold bg-rose-100 text-rose-900 border border-rose-300 shadow-sm">
+                                  <Users size={13} className="text-rose-700" />
+                                  <span>إداري بنات</span>
+                                  <ChevronDown size={12} className="opacity-60" />
+                                </span>
+                              );
+                            } else if (strVal !== '') {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs md:text-sm font-bold bg-slate-100 text-slate-800 border border-slate-300 shadow-sm">
+                                  <span>{strVal}</span>
+                                  <ChevronDown size={12} className="opacity-60" />
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-blue-600 text-xs font-semibold px-2 py-1 rounded-md transition-colors border border-dashed border-slate-300 bg-slate-50/70">
+                                  <span>اختر التبعية</span>
                                   <ChevronDown size={13} className="text-slate-400" />
                                 </span>
                               );
@@ -4601,6 +4897,224 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* نافذة خيارات الوظيفة المنبثقة مباشرة فوق الخلية */}
+        {jobPicker && activeSheet && (
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[0.5px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setJobPicker(null);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <div 
+              className="fixed bg-white rounded-2xl shadow-2xl border-2 border-indigo-500 p-3 min-w-[260px] max-w-[320px] text-right font-sans ring-4 ring-indigo-500/10 z-[10000] animate-in fade-in zoom-in-95 duration-100"
+              style={{
+                top: jobPicker.bottom + 300 > window.innerHeight 
+                  ? Math.max(10, jobPicker.top - 300) 
+                  : jobPicker.bottom + 4,
+                right: Math.max(12, Math.min(window.innerWidth - 290, window.innerWidth - jobPicker.right)),
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
+                  <Briefcase size={15} className="text-indigo-600" />
+                  <span>الوظيفة</span>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setJobPicker(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* بحث سريع داخل الوظائف */}
+              <div className="relative mb-2">
+                <input
+                  type="text"
+                  value={pickerSearchQuery}
+                  onChange={(e) => setPickerSearchQuery(e.target.value)}
+                  placeholder="ابحث في الوظائف..."
+                  className="w-full pl-2 pr-7 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+                <Search size={13} className="absolute right-2 top-2.5 text-slate-400" />
+              </div>
+
+              <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar p-0.5">
+                {jobOptions
+                  .filter(job => !pickerSearchQuery.trim() || job.toLowerCase().includes(pickerSearchQuery.trim().toLowerCase()))
+                  .map(job => {
+                    const cellVal = String(activeSheet.data[jobPicker.r]?.[jobPicker.c] || '').trim();
+                    const isSelected = cellVal === job;
+                    return (
+                      <button
+                        type="button"
+                        key={job}
+                        onClick={() => handleSelectJobOption(jobPicker.r, jobPicker.c, job)}
+                        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                          isSelected
+                            ? 'bg-indigo-50 text-indigo-900 border-indigo-300 shadow-sm ring-1 ring-indigo-400'
+                            : 'bg-slate-50 hover:bg-indigo-50 text-slate-700 hover:text-indigo-900 border-slate-100 hover:border-indigo-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                          <span>{job}</span>
+                        </div>
+                        {isSelected && <Check size={14} className="text-indigo-600" />}
+                      </button>
+                    );
+                  })}
+              </div>
+
+              {/* حقل إضافة وظيفة جديدة للمسؤول */}
+              {user.role === 'admin' && (
+                <div className="border-t border-slate-100 pt-2.5 mt-2">
+                  <div className="text-[11px] font-bold text-slate-600 mb-1.5">إضافة وظيفة جديدة:</div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={customJobInput}
+                      onChange={(e) => setCustomJobInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && customJobInput.trim()) {
+                          const newJob = customJobInput.trim();
+                          setCustomJobOptions(prev => prev.includes(newJob) ? prev : [...prev, newJob]);
+                          handleSelectJobOption(jobPicker.r, jobPicker.c, newJob);
+                        }
+                      }}
+                      placeholder="اكتب اسم الوظيفة الجديدة..."
+                      className="flex-1 px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customJobInput.trim()) {
+                          const newJob = customJobInput.trim();
+                          setCustomJobOptions(prev => prev.includes(newJob) ? prev : [...prev, newJob]);
+                          handleSelectJobOption(jobPicker.r, jobPicker.c, newJob);
+                        }
+                      }}
+                      disabled={!customJobInput.trim()}
+                      className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      إضافة
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeSheet.data[jobPicker.r]?.[jobPicker.c] && (
+                <div className="border-t border-slate-100 pt-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectJobOption(jobPicker.r, jobPicker.c, "")}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                  >
+                    <Eraser size={13} />
+                    <span>مسح القيمة</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* نافذة خيارات تبعية الموظف المنبثقة مباشرة فوق الخلية */}
+        {affiliationPicker && activeSheet && (
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[0.5px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setAffiliationPicker(null);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <div 
+              className="fixed bg-white rounded-2xl shadow-2xl border-2 border-blue-500 p-3 min-w-[260px] max-w-[300px] text-right font-sans ring-4 ring-blue-500/10 z-[10000] animate-in fade-in zoom-in-95 duration-100"
+              style={{
+                top: affiliationPicker.bottom + 250 > window.innerHeight 
+                  ? Math.max(10, affiliationPicker.top - 250) 
+                  : affiliationPicker.bottom + 4,
+                right: Math.max(12, Math.min(window.innerWidth - 270, window.innerWidth - affiliationPicker.right)),
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
+                  <Building2 size={15} className="text-blue-600" />
+                  <span>تبعية الموظف</span>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setAffiliationPicker(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-1.5 p-0.5">
+                {AFFILIATION_OPTIONS.map(opt => {
+                  const cellVal = String(activeSheet.data[affiliationPicker.r]?.[affiliationPicker.c] || '').trim();
+                  const isSelected = cellVal === opt;
+                  
+                  let badgeColors = 'bg-blue-50 hover:bg-blue-100 text-blue-900 border-blue-200';
+                  let Icon = Building2;
+                  if (opt === 'إداري بنين') {
+                    badgeColors = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-emerald-200';
+                    Icon = Users;
+                  } else if (opt === 'إداري بنات') {
+                    badgeColors = 'bg-rose-50 hover:bg-rose-100 text-rose-900 border-rose-200';
+                    Icon = Users;
+                  }
+
+                  return (
+                    <button
+                      type="button"
+                      key={opt}
+                      onClick={() => handleSelectAffiliationOption(affiliationPicker.r, affiliationPicker.c, opt)}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs md:text-sm font-bold transition-all border cursor-pointer ${
+                        isSelected
+                          ? `${badgeColors} ring-2 ring-blue-500 shadow-sm font-black`
+                          : badgeColors
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon size={16} />
+                        <span>{opt}</span>
+                      </div>
+                      {isSelected && <Check size={16} className="text-blue-600" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {activeSheet.data[affiliationPicker.r]?.[affiliationPicker.c] && (
+                <div className="border-t border-slate-100 pt-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectAffiliationOption(affiliationPicker.r, affiliationPicker.c, "")}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                  >
+                    <Eraser size={13} />
+                    <span>مسح القيمة</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -5487,6 +6001,25 @@ function App() {
                     </button>
                   </div>
 
+                  {/* زر تبديل شريط أدوات التنسيق */}
+                  <button 
+                    onClick={() => {
+                      if (selectedCells.size === 0 && activeSheet) {
+                        setSelectedCells(new Set(['2,1']));
+                      }
+                      setIsToolbarCollapsed(prev => !prev);
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
+                      !isToolbarCollapsed && selectedCells.size > 0
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                    }`}
+                    title="إظهار / إخفاء شريط أدوات التنسيق (دمج، ألوان، حدود)"
+                  >
+                    <Combine size={15} className="text-blue-600" />
+                    <span className="hidden sm:inline">أدوات التنسيق</span>
+                  </button>
+
                   <button 
                     onClick={handleSaveToOriginal}
                     className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs md:text-sm font-bold shadow-sm hover:shadow-md transition-all"
@@ -5510,29 +6043,29 @@ function App() {
                 </div>
               </div>
 
-              {/* شريط الأدوات (يظهر عند تحديد خلايا) */}
+              {/* شريط الأدوات (يظهر عند تحديد خلايا أو عند تفعيله) */}
               {selectedCells.size > 0 && (
                 isToolbarCollapsed ? (
-                  <div className="w-full flex justify-center -mb-2 z-20 relative">
+                  <div className="w-full flex justify-center -mt-2 -mb-2 z-30 relative pointer-events-auto">
                     <button 
                       onClick={() => setIsToolbarCollapsed(false)} 
-                      className="flex items-center gap-1.5 px-3 py-1 bg-white/95 hover:bg-white text-slate-700 hover:text-blue-600 rounded-full border border-slate-300 shadow-sm hover:shadow transition-all text-xs font-bold cursor-pointer" 
-                      title="إظهار شريط أدوات التنسيق"
+                      className="bg-white/95 hover:bg-white text-slate-600 hover:text-blue-600 rounded-full p-1 px-3 shadow-sm border border-slate-200/90 transition-all flex items-center gap-1 cursor-pointer hover:shadow hover:scale-105 active:scale-95" 
+                      title="إظهار شريط أدوات التنسيق (دمج، ألوان، حدود)"
                     >
                       <ChevronDown size={14} className="text-blue-600" />
-                      <span className="text-[11px] text-slate-600">أدوات التنسيق ({selectedCells.size})</span>
+                      <span className="text-[11px] font-bold text-slate-600">أدوات التنسيق ({selectedCells.size})</span>
                     </button>
                   </div>
                 ) : (
                   <motion.div 
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-slate-800 text-white rounded-xl px-4 py-2.5 mb-2.5 flex flex-wrap items-center gap-4 shadow-md sticky top-2 z-20 border border-slate-700"
+                    className="bg-slate-800 text-white rounded-xl px-4 py-2.5 mb-2 flex flex-wrap items-center gap-4 shadow-md sticky top-1 z-20 border border-slate-700 shrink-0"
                   >
                     <button 
                       onClick={() => setIsToolbarCollapsed(true)} 
-                      className="hover:bg-slate-700 p-1 rounded transition-colors text-slate-200 flex items-center justify-center border-l border-slate-600 pl-3 cursor-pointer" 
-                      title="طي شريط الأدوات"
+                      className="hover:bg-slate-700 p-1.5 rounded-lg transition-colors text-slate-200 flex items-center justify-center border-l border-slate-600 pl-3 cursor-pointer" 
+                      title="إخفاء شريط الأدوات لتوسيع مساحة الرؤية"
                     >
                       <ChevronUp size={18} />
                     </button>
