@@ -1,4 +1,7 @@
 import { getUsers, loginUser, addUser, updateUser, deleteUser, saveExcelToFirestore, loadExcelFromFirestore } from './lib/api';
+import { TeacherFormScreen } from './components/TeacherFormScreen';
+import { AdminFormScreen } from './components/AdminFormScreen';
+import { SupportFormScreen } from './components/SupportFormScreen';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import * as XLSX from 'xlsx';
@@ -386,7 +389,9 @@ function InCellIbanEditor({
             onMouseDown={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              navigator.clipboard.writeText(val);
+              try {
+                navigator.clipboard?.writeText(val)?.catch(() => {});
+              } catch {}
               setCopied(true);
               setTimeout(() => setCopied(false), 1500);
             }}
@@ -595,6 +600,17 @@ function App() {
   // حالة عرض جدول الإكسيل
   const [activeSheet, setActiveSheet] = useState<ActiveSheetData | null>(null);
   const [isLoadingExcel, setIsLoadingExcel] = useState(false);
+  const [showTeacherForm, setShowTeacherForm] = useState(false);
+  const [showAdminForm, setShowAdminForm] = useState(false);
+  const [showSupportForm, setShowSupportForm] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  const showToast = (text: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToastMessage({ text, type });
+    setTimeout(() => {
+      setToastMessage(prev => prev?.text === text ? null : prev);
+    }, 4000);
+  };
   
   // حالة حفظ التعديلات الشاملة
   const [modifiedSheets, setModifiedSheets] = useState<Record<string, ActiveSheetData>>({});
@@ -878,6 +894,27 @@ function App() {
   };
 
   const loadSheetData = async (title: string, sheetName: string) => {
+    // إخفاء أي بيانات وجدول لبيانات الكادر التعليمي وفتح شاشة تسجيل بيانات المعلم المنبثقة مباشرة
+    if (title === 'بيانات الكادر التعليمي' || title === 'بيانات المعلمين' || sheetName === 'المعلمين') {
+      setActiveSheet(null);
+      setShowTeacherForm(true);
+      return;
+    }
+
+    // إخفاء أي بيانات وجدول لبيانات الكادر الإداري وفتح شاشة تسجيل بيانات الكادر الإداري المنبثقة مباشرة
+    if (title === 'بيانات الكادر الإداري' || title === 'ادارة المجمع' || title === 'إدارة المجمع' || sheetName === 'إدارة المجمع') {
+      setActiveSheet(null);
+      setShowAdminForm(true);
+      return;
+    }
+
+    // إخفاء أي بيانات وجدول للخدمات المساندة وفتح شاشة تسجيل بيانات الخدمات المساندة المنبثقة مباشرة
+    if (title === 'الخدمات المساندة' || sheetName === 'الخدمات المساندة' || title === 'بيانات الخدمات المساندة') {
+      setActiveSheet(null);
+      setShowSupportForm(true);
+      return;
+    }
+
     // التحقق مما إذا كان الشيت معدل مسبقاً ومحفوظ محلياً
     if (modifiedSheets[title]) {
       const cached = modifiedSheets[title];
@@ -917,7 +954,7 @@ function App() {
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       
       if (!workbook.SheetNames.includes(sheetName)) {
-        alert(`عذراً، الشيت "${sheetName}" غير موجود في الملف.`);
+        showToast(`عذراً، الشيت "${sheetName}" غير موجود في الملف.`, 'error');
         setIsLoadingExcel(false);
         return;
       }
@@ -1281,7 +1318,7 @@ function App() {
       setActiveSheet({ title, data: normalizedData, merges, colors: {} });
     } catch (error) {
       console.error("Error loading Excel file:", error);
-      alert("حدث خطأ أثناء قراءة ملف الإكسيل. تأكد من وجوده في المسار الصحيح.");
+      showToast("حدث خطأ أثناء قراءة ملف الإكسيل. تأكد من وجوده في المسار الصحيح.", 'error');
     } finally {
       setIsLoadingExcel(false);
     }
@@ -2930,18 +2967,18 @@ function App() {
         // Post to server to save directly
         const saveRes = await saveExcelToFirestore(outBuffer);
         if (saveRes.success) {
-          alert('تم الحفظ في الملف الأصلي بنجاح!');
+          showToast('تم الحفظ في الملف الأصلي بنجاح!', 'success');
           // Update local state modified sheets as well just in case
           setModifiedSheets(prev => ({ ...prev, [activeSheet.title]: activeSheet }));
         } else {
           throw new Error('Server returned ' + 400);
         }
       } else {
-        alert('لم يتم العثور على اسم الشيت الأصلي للحفظ!');
+        showToast('لم يتم العثور على اسم الشيت الأصلي للحفظ!', 'error');
       }
     } catch (e) {
       console.error(e);
-      alert('حدث خطأ أثناء الحفظ في الملف الأصلي.');
+      showToast('حدث خطأ أثناء الحفظ في الملف الأصلي.', 'error');
     }
   };
 
@@ -3773,7 +3810,9 @@ function App() {
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    navigator.clipboard.writeText(fullIban);
+                                    try {
+                                      navigator.clipboard?.writeText(fullIban)?.catch(() => {});
+                                    } catch {}
                                     setCopiedCellKey(`${rowIdx},${colIdx}`);
                                     setTimeout(() => setCopiedCellKey(null), 1500);
                                   }}
@@ -3991,28 +4030,26 @@ function App() {
                 <button
                   type="button"
                   onClick={() => handleSelectLicenseOption(licensePicker.r, licensePicker.c, 1)}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 font-black transition-all ${
+                  className={`flex items-center justify-center py-2.5 px-4 rounded-xl border-2 font-black transition-all ${
                     String(activeSheet.data[licensePicker.r]?.[licensePicker.c]).trim() === '1'
                       ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-md ring-2 ring-emerald-400/40'
                       : 'bg-slate-50 hover:bg-emerald-50 border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700'
                   }`}
                 >
-                  <span className="text-2xl font-black mb-0.5 text-emerald-700">1</span>
-                  <span className="text-[11px] font-bold text-emerald-800">حاصل</span>
+                  <span className="text-2xl font-black text-emerald-700">1</span>
                 </button>
 
                 {/* خيار 0 */}
                 <button
                   type="button"
                   onClick={() => handleSelectLicenseOption(licensePicker.r, licensePicker.c, 0)}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 font-black transition-all ${
+                  className={`flex items-center justify-center py-2.5 px-4 rounded-xl border-2 font-black transition-all ${
                     String(activeSheet.data[licensePicker.r]?.[licensePicker.c]).trim() === '0'
                       ? 'bg-slate-100 border-slate-500 text-slate-800 shadow-md ring-2 ring-slate-400/40'
                       : 'bg-slate-50 hover:bg-slate-100 border-slate-200 hover:border-slate-300 text-slate-700'
                   }`}
                 >
-                  <span className="text-2xl font-black mb-0.5 text-slate-700">0</span>
-                  <span className="text-[11px] font-bold text-slate-600">غير حاصل</span>
+                  <span className="text-2xl font-black text-slate-700">0</span>
                 </button>
               </div>
 
@@ -5200,35 +5237,31 @@ function App() {
   }, [showSettings, settingsTab, user]);
 
   const handleDeleteUser = async (username: string) => {
-    if (!window.confirm(`هل أنت متأكد من حذف المستخدم "${username}"؟`)) return;
     try {
-      
       const res = await deleteUser(username);
       if (res.success) {
         fetchUsers();
+        setSettingsMessage({ type: 'success', text: `تم حذف المستخدم "${username}" بنجاح` });
       } else {
-        
-        alert(res.error || 'حدث خطأ أثناء الحذف');
+        setSettingsMessage({ type: 'error', text: res.error || 'حدث خطأ أثناء الحذف' });
       }
     } catch (err) {
-      alert('تعذر الاتصال بالخادم');
+      setSettingsMessage({ type: 'error', text: 'تعذر الاتصال بالخادم' });
     }
   };
 
   const handleSaveEditUser = async (oldUsername: string) => {
     try {
       const res = await updateUser(oldUsername, editUserForm.username, editUserForm.password, editUserForm.complex);
-      const data = res;
-      
       if (res.success) {
         setEditingUsername(null);
         fetchUsers();
+        setSettingsMessage({ type: 'success', text: 'تم تحديث البيانات بنجاح' });
       } else {
-        
-        alert(data.error || 'حدث خطأ');
+        setSettingsMessage({ type: 'error', text: res.error || 'حدث خطأ' });
       }
     } catch (err) {
-      alert('تعذر الاتصال بالخادم');
+      setSettingsMessage({ type: 'error', text: 'تعذر الاتصال بالخادم' });
     }
   };
 
@@ -5537,6 +5570,9 @@ function App() {
                 setSelectedCategory(null);
                 setSavedData(null);
                 setActiveSheet(null);
+                setShowTeacherForm(false);
+                setShowAdminForm(false);
+                setShowSupportForm(false);
               }}
               className="bg-white border border-red-200 hover:bg-red-50 text-red-600 px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-sm mr-2"
             >
@@ -5689,10 +5725,10 @@ function App() {
                       
                       // تصدير وتنزيل الملف الجديد
                       XLSX.writeFile(workbook, 'data.xlsx');
-                      alert("تم تصدير ملف الإكسيل بنجاح!");
+                      showToast("تم تصدير ملف الإكسيل بنجاح!", 'success');
                     } catch (error) {
                       console.error("Export error:", error);
-                      alert("حدث خطأ أثناء التصدير.");
+                      showToast("حدث خطأ أثناء التصدير.", 'error');
                     }
                   }}
                   className="w-full flex items-center justify-center gap-2 px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95"
@@ -5802,7 +5838,20 @@ function App() {
                       >
                         {whiteCards.filter(card => card.name.includes(searchQuery)).map((card, idx) => (
                           <motion.button 
-                            onClick={() => loadSheetData(card.name, card.sheetName)}
+                            onClick={() => {
+                              if (card.name === 'بيانات الكادر التعليمي' || card.name === 'بيانات المعلمين') {
+                                setActiveSheet(null);
+                                setShowTeacherForm(true);
+                              } else if (card.name === 'بيانات الكادر الإداري' || card.name === 'ادارة المجمع' || card.name === 'إدارة المجمع') {
+                                setActiveSheet(null);
+                                setShowAdminForm(true);
+                              } else if (card.name === 'الخدمات المساندة' || card.sheetName === 'الخدمات المساندة') {
+                                setActiveSheet(null);
+                                setShowSupportForm(true);
+                              } else {
+                                loadSheetData(card.name, card.sheetName);
+                              }
+                            }}
                             variants={itemVariants}
                             key={idx}
                             className="flex flex-col items-center justify-center gap-2 lg:gap-3 p-2 lg:p-4 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-blue-500/15 hover:border-blue-300 hover:-translate-y-2 hover:scale-[1.02] transition-all duration-300 group aspect-square text-center w-full relative z-10"
@@ -5909,6 +5958,33 @@ function App() {
               )}
 
             </motion.div>
+          )}
+
+          {/* شاشة بطاقة بيانات الكادر التعليمي (شاشة طولية للإدخال والحفظ مع إخفاء الجداول والبيانات القديمة تماماً) */}
+          {showTeacherForm && (
+            <TeacherFormScreen
+              onBack={() => setShowTeacherForm(false)}
+              academicYear={academicYear}
+              complexName={user?.complex || complexName}
+            />
+          )}
+
+          {/* شاشة بطاقة بيانات الكادر الإداري (شاشة منبثقة للإدخال والحفظ مع إخفاء البيانات القديمة وخاصة بالكادر الإداري فقط) */}
+          {showAdminForm && (
+            <AdminFormScreen
+              onBack={() => setShowAdminForm(false)}
+              academicYear={academicYear}
+              complexName={user?.complex || complexName}
+            />
+          )}
+
+          {/* شاشة بطاقة بيانات الخدمات المساندة (شاشة منبثقة للإدخال والحفظ مع إخفاء البيانات القديمة وخاصة بالخدمات المساندة فقط) */}
+          {showSupportForm && (
+            <SupportFormScreen
+              onBack={() => setShowSupportForm(false)}
+              academicYear={academicYear}
+              complexName={user?.complex || complexName}
+            />
           )}
 
           {/* منطقة عرض جدول الإكسيل - شاشة كاملة تأخذ كامل طول وعرض الموقع */}
@@ -6263,6 +6339,28 @@ function App() {
         </main>
 
       </div>
+
+      {/* إشعار عائم Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[10000] animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className={`px-4 py-2.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs sm:text-sm font-bold backdrop-blur-md ${
+            toastMessage.type === 'success'
+              ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/30'
+              : toastMessage.type === 'error'
+              ? 'bg-rose-600 text-white border-rose-500 shadow-rose-600/30'
+              : 'bg-slate-900 text-white border-slate-700 shadow-black/30'
+          }`}>
+            <span>{toastMessage.text}</span>
+            <button
+              type="button"
+              onClick={() => setToastMessage(null)}
+              className="p-1 hover:bg-white/20 rounded-lg transition-colors cursor-pointer mr-1"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* التذييل */}
       <footer className="mt-12 text-center text-slate-500 text-sm space-y-1 pb-4">

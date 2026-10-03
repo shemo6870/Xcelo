@@ -91,3 +91,139 @@ export const loadExcelFromFirestore = async () => {
   }
   return null;
 };
+
+// Teacher Records Management
+export interface TeacherRecord {
+  id?: string;
+  jobNum: string;
+  name: string;
+  nationality: string;
+  section: string;
+  nationalId: string;
+  phone: string;
+  quota: string;
+  qualification: string;
+  specialization: string;
+  subject: string;
+  license: string;
+  classera: string;
+  email: string;
+  iban: string;
+  bank: string;
+  startDate: string;
+  createdAt?: string;
+}
+
+const teachersCol = collection(db, 'teachers');
+
+export const saveTeacherToFirestore = async (teacher: TeacherRecord): Promise<any> => {
+  const docRef = await addDoc(teachersCol, {
+    ...teacher,
+    createdAt: new Date().toISOString()
+  });
+  return { success: true, id: docRef.id };
+};
+
+export const getTeachersFromFirestore = async (): Promise<TeacherRecord[]> => {
+  const snapshot = await getDocs(teachersCol);
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as TeacherRecord));
+};
+
+export const deleteTeacherFromFirestore = async (id: string): Promise<any> => {
+  await deleteDoc(doc(db, 'teachers', id));
+  return { success: true };
+};
+
+export const updateTeacherInFirestore = async (id: string, teacher: Partial<TeacherRecord>): Promise<any> => {
+  await updateDoc(doc(db, 'teachers', id), teacher);
+  return { success: true };
+};
+
+// Administrative Staff Records Management
+export interface AdminRecord {
+  id?: string;
+  jobNum: string;
+  name: string;
+  nationality: string;
+  section: string;
+  nationalId: string;
+  phone: string;
+  qualification: string;
+  specialization: string;
+  license: string;
+  email: string;
+  iban: string;
+  bank: string;
+  startDate: string;
+  createdAt?: string;
+}
+
+const adminStaffCol = collection(db, 'admin_staff');
+
+export const saveAdminToFirestore = async (admin: AdminRecord): Promise<any> => {
+  const docRef = await addDoc(adminStaffCol, {
+    ...admin,
+    createdAt: new Date().toISOString()
+  });
+  return { success: true, id: docRef.id };
+};
+
+export const getAdminsFromFirestore = async (): Promise<AdminRecord[]> => {
+  const snapshot = await getDocs(adminStaffCol);
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as AdminRecord));
+};
+
+export const deleteAdminFromFirestore = async (id: string): Promise<any> => {
+  await deleteDoc(doc(db, 'admin_staff', id));
+  return { success: true };
+};
+
+export const updateAdminInFirestore = async (id: string, admin: Partial<AdminRecord>): Promise<any> => {
+  await updateDoc(doc(db, 'admin_staff', id), admin);
+  return { success: true };
+};
+
+// Support Staff Records Management (الخدمات المساندة)
+export interface SupportStaffRecord {
+  id?: string;
+  jobNum: string;
+  name: string;
+  nationality: string;
+  section: string;
+  nationalId: string;
+  phone: string;
+  email: string;
+  iban: string;
+  bank: string;
+  startDate: string;
+  createdAt?: string;
+}
+
+const supportStaffCol = collection(db, 'support_staff');
+
+export const saveSupportStaffToFirestore = async (staff: SupportStaffRecord): Promise<any> => {
+  const docRef = await addDoc(supportStaffCol, {
+    ...staff,
+    createdAt: new Date().toISOString()
+  });
+  return { success: true, id: docRef.id };
+};
+
+export const getSupportStaffFromFirestore = async (): Promise<SupportStaffRecord[]> => {
+  const snapshot = await getDocs(supportStaffCol);
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as SupportStaffRecord));
+};
+
+export const deleteSupportStaffFromFirestore = async (id: string): Promise<any> => {
+  await deleteDoc(doc(db, 'support_staff', id));
+  return { success: true };
+};
+
+export const updateSupportStaffInFirestore = async (id: string, staff: Partial<SupportStaffRecord>): Promise<any> => {
+  await updateDoc(doc(db, 'support_staff', id), staff);
+  return { success: true };
+};
+
+
+
+
