@@ -953,13 +953,20 @@ function App() {
 
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       
-      if (!workbook.SheetNames.includes(sheetName)) {
-        showToast(`عذراً، الشيت "${sheetName}" غير موجود في الملف.`, 'error');
-        setIsLoadingExcel(false);
-        return;
+      let actualSheetName = sheetName;
+      if (!workbook.SheetNames.includes(actualSheetName)) {
+        if ((actualSheetName === 'الاسنادات' || actualSheetName === 'الإسنادات') && workbook.SheetNames.includes('اسناد بنين ف١')) {
+          actualSheetName = 'اسناد بنين ف١';
+        } else if (actualSheetName === 'اسناد بنين ف١' && workbook.SheetNames.includes('الاسنادات')) {
+          actualSheetName = 'الاسنادات';
+        } else {
+          showToast(`عذراً، الشيت "${sheetName}" غير موجود في الملف.`, 'error');
+          setIsLoadingExcel(false);
+          return;
+        }
       }
 
-      const worksheet = workbook.Sheets[sheetName];
+      const worksheet = workbook.Sheets[actualSheetName];
       const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false }) as any[][];
       
       let maxCols = 0;
@@ -971,6 +978,29 @@ function App() {
       });
 
       let merges = [...(worksheet['!merges'] || [])];
+
+      // التأكد من دمج اسنادات البنات مع اسنادات البنين في شيت الإسنادات
+      if ((title === 'الاسنادات' || title === 'الإسنادات' || sheetName === 'الاسنادات' || sheetName === 'اسناد بنين ف١') && workbook.Sheets['اسناد البنات ف١']) {
+        const alreadyHasGirls = normalizedData.some(row => 
+          row && row.some(cell => String(cell).includes('اسنادات قطاع البنات') || String(cell).includes('نورا مجدي') || String(cell).includes('سارة المخلفي'))
+        );
+
+        if (!alreadyHasGirls) {
+          const wsG = workbook.Sheets['اسناد البنات ف١'];
+          const rawDataG = XLSX.utils.sheet_to_json(wsG, { header: 1, defval: "", raw: false }) as any[][];
+          
+          normalizedData.push(new Array(maxCols).fill(""));
+          normalizedData.push(["", "========================================", "", "", ""]);
+          normalizedData.push(["", "اسنادات قطاع البنات", "", "", ""]);
+          normalizedData.push(new Array(maxCols).fill(""));
+
+          rawDataG.forEach(row => {
+            const newRow = [...row];
+            while (newRow.length < maxCols) newRow.push("");
+            normalizedData.push(newRow);
+          });
+        }
+      }
 
       // التأكد من تضمين بيانات المعلمات تحت بيانات المعلمين في نفس الجدول (الكادر التعليمي)
       if ((title === 'بيانات الكادر التعليمي' || title === 'بيانات المعلمين' || sheetName === 'المعلمين') && workbook.Sheets['المعلمات']) {
@@ -2928,8 +2958,10 @@ function App() {
         { name: 'بيانات المرافق', sheetName: 'مساحات الفصول' },
         { name: 'مقارنة النمو', sheetName: 'مقارنة النمو' },
         { name: 'STR / SAR / SSR / SER', sheetName: 'مؤشرات المجمع' },
-        { name: 'اسناد بنين ف1', sheetName: 'اسناد بنين ف١' },
-        { name: 'اسناد البنات ف1', sheetName: 'اسناد البنات ف١' },
+        { name: 'الاسنادات', sheetName: 'الاسنادات' },
+        { name: 'الإسنادات', sheetName: 'الاسنادات' },
+        { name: 'اسناد بنين ف1', sheetName: 'الاسنادات' },
+        { name: 'اسناد البنات ف1', sheetName: 'الاسنادات' },
         { name: 'قدرات وتحصيلي', sheetName: 'القدرات والتحصيلي' },
         { name: 'قدرات', sheetName: 'القدرات والتحصيلي' },
         { name: 'تحصيلي', sheetName: 'القدرات والتحصيلي' },
@@ -2938,8 +2970,8 @@ function App() {
         { name: 'تقارير المبنى', sheetName: 'تقارير المبنى' },
         { name: 'الرخصة المهنية', sheetName: 'الرخصة المهنية' },
         { name: 'الطلاب والفصول', sheetName: 'إحصاء الطلاب' },
-        { name: 'اسناد المعلمين', sheetName: 'اسناد بنين ف١' },
-        { name: 'اسناد المعلمات', sheetName: 'اسناد البنات ف١' }
+        { name: 'اسناد المعلمين', sheetName: 'الاسنادات' },
+        { name: 'اسناد المعلمات', sheetName: 'الاسنادات' }
       ];
 
       const originalSheetName = allCards.find(c => c.name === activeSheet.title)?.sheetName;
@@ -2991,8 +3023,7 @@ function App() {
     { name: 'العهدة المالية', sheetName: 'العهدة المالية', icon: Wallet },
     { name: 'النشاط', sheetName: 'نشاط بنين ف٢', icon: Gamepad2 },
     { name: 'بيانات المرافق', sheetName: 'مساحات الفصول', icon: Building2 },
-    { name: 'اسناد بنين ف1', sheetName: 'اسناد بنين ف١', icon: Users },
-    { name: 'اسناد البنات ف1', sheetName: 'اسناد البنات ف١', icon: Users },
+    { name: 'الاسنادات', sheetName: 'الاسنادات', icon: Users },
     { name: 'قدرات وتحصيلي', sheetName: 'القدرات والتحصيلي', icon: TrendingUp },
     { name: 'نافس', sheetName: 'نافس', icon: Activity },
   ];
@@ -3077,8 +3108,7 @@ function App() {
       { name: 'مقارنة نمو الطلاب', sheetName: 'مقارنة النمو', icon: TrendingUp }
     ],
     'تقارير فنية': [
-      { name: 'اسناد المعلمين', sheetName: 'اسناد بنين ف١', icon: UserSquare2 },
-      { name: 'اسناد المعلمات', sheetName: 'اسناد البنات ف١', icon: Users }
+      { name: 'الاسنادات', sheetName: 'الاسنادات', icon: Users }
     ]
   };
 
@@ -5708,8 +5738,12 @@ function App() {
                           { name: 'الجميع', sheetName: 'القدرات والتحصيلي' },
                           { name: 'الرخصة المهنية', sheetName: 'الرخصة المهنية' },
                           { name: 'الطلاب والفصول', sheetName: 'إحصاء الطلاب' },
-                          { name: 'اسناد المعلمين', sheetName: 'اسناد بنين ف١' },
-                          { name: 'اسناد المعلمات', sheetName: 'اسناد البنات ف١' },
+                          { name: 'الاسنادات', sheetName: 'الاسنادات' },
+                          { name: 'الإسنادات', sheetName: 'الاسنادات' },
+                          { name: 'اسناد بنين ف1', sheetName: 'الاسنادات' },
+                          { name: 'اسناد البنات ف1', sheetName: 'الاسنادات' },
+                          { name: 'اسناد المعلمين', sheetName: 'الاسنادات' },
+                          { name: 'اسناد المعلمات', sheetName: 'الاسنادات' },
                         ];
                         
                         const originalSheetName = allCards.find(c => c.name === title)?.sheetName;
