@@ -5,6 +5,7 @@ interface DatePickerFieldProps {
   value: string;
   onChange: (val: string) => void;
   accentColor?: 'blue' | 'indigo';
+  dropUp?: boolean;
 }
 
 const MONTHS_AR = [
@@ -20,10 +21,29 @@ const YEARS = Array.from({ length: 56 }, (_, i) => 1980 + i);
 export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   value,
   onChange,
-  accentColor = 'blue'
+  accentColor = 'blue',
+  dropUp
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // حساب الموضع التلقائي لفتح التقويم لأعلى إذا كانت المساحة بالأسفل ضيقة حتى لا يضطر المستخدم للنزول بالاسكرول
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      if (dropUp !== undefined) {
+        setOpenUpward(dropUp);
+      } else {
+        const rect = containerRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceBelow < 340) {
+          setOpenUpward(true);
+        } else {
+          setOpenUpward(false);
+        }
+      }
+    }
+  }, [isOpen, dropUp]);
 
   // استخراج السنة والشهر واليوم من القيمة الحالية إن وجدت، أو التاريخ الحالي
   const initialDate = React.useMemo(() => {
@@ -175,7 +195,7 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
       {/* نافذة التقويم المنبثقة التفاعلية */}
       {isOpen && (
         <div 
-          className="absolute top-full mt-1.5 right-0 z-50 bg-white rounded-2xl shadow-2xl border border-slate-200 p-3 w-72 sm:w-80 animate-in fade-in zoom-in-95 duration-100 text-slate-800 select-none"
+          className={`absolute ${openUpward ? 'bottom-full mb-2' : 'top-full mt-1.5'} right-0 z-[100] bg-white rounded-2xl shadow-2xl border border-slate-200 p-3 w-72 sm:w-80 animate-in fade-in zoom-in-95 duration-100 text-slate-800 select-none`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* شريط التحكم في الشهر والسنة */}

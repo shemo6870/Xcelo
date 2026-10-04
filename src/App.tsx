@@ -5644,28 +5644,6 @@ function App() {
               </select>
             </div>
 
-            {/* المسار */}
-            <div className="flex-1 w-full">
-              <label className="flex items-center gap-2 text-sm font-bold text-blue-900 mb-2">
-                <GraduationCap size={16} className="text-blue-500" />
-                المسار
-              </label>
-              <select 
-                value={pathName}
-                onChange={(e) => setPathName(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all cursor-pointer text-slate-700"
-              >
-                <option value="كل المسارات">كل المسارات</option>
-                <option value="أهلي">أهلي</option>
-                <option value="دولي">دولي</option>
-                <option value="دبلومة أمريكية">دبلومة أمريكية</option>
-                <option value="نون">نون</option>
-                <option value="مصري">مصري</option>
-                <option value="تربية خاصة">تربية خاصة</option>
-                <option value="فرنسي">فرنسي</option>
-              </select>
-            </div>
-
             {/* اختيار اسم المجمع */}
             <div className="flex-1 w-full">
               <label className="flex items-center gap-2 text-sm font-bold text-blue-900 mb-2">
@@ -5805,9 +5783,6 @@ function App() {
                 <div className="flex flex-wrap gap-4 items-center justify-center">
                   <div className="inline-flex items-center justify-center bg-blue-100 text-blue-800 px-6 py-2 rounded-full text-lg md:text-xl font-bold shadow-sm border border-blue-200">
                     العام الدراسي: {savedData.year}
-                  </div>
-                  <div className="inline-flex items-center justify-center bg-emerald-100 text-emerald-800 px-6 py-2 rounded-full text-lg md:text-xl font-bold shadow-sm border border-emerald-200">
-                    المسار: {savedData.path}
                   </div>
                 </div>
               </motion.div>
@@ -6000,6 +5975,7 @@ function App() {
               onBack={() => setShowTeacherForm(false)}
               academicYear={academicYear}
               complexName={user?.complex || complexName}
+              isAdmin={user?.role === 'admin'}
             />
           )}
 
@@ -6009,6 +5985,7 @@ function App() {
               onBack={() => setShowAdminForm(false)}
               academicYear={academicYear}
               complexName={user?.complex || complexName}
+              isAdmin={user?.role === 'admin'}
             />
           )}
 
@@ -6018,6 +5995,7 @@ function App() {
               onBack={() => setShowSupportForm(false)}
               academicYear={academicYear}
               complexName={user?.complex || complexName}
+              isAdmin={user?.role === 'admin'}
             />
           )}
 

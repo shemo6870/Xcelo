@@ -3,7 +3,7 @@ import {
   HeartHandshake, Save, User, Hash, Globe, Users, 
   CreditCard, Phone, 
   Mail, Landmark, Calendar, Check, Copy, X, Trash2, Edit3, 
-  AlertCircle, Search
+  AlertCircle, Search, Plus
 } from 'lucide-react';
 import { 
   SupportStaffRecord, 
@@ -13,54 +13,27 @@ import {
   updateSupportStaffInFirestore
 } from '../lib/api';
 import { DatePickerField } from './DatePickerField';
+import { OptionManagerModal } from './OptionManagerModal';
+import { ManagedSelectField } from './ManagedSelectField';
+import {
+  DEFAULT_NATIONALITIES,
+  DEFAULT_SUPPORT_SECTIONS,
+  DEFAULT_BANKS,
+  loadCustomOptions,
+  saveCustomOptions,
+  fetchCustomOptionsFromFirestore
+} from '../lib/customOptions';
 
 interface SupportFormScreenProps {
   onBack: () => void;
   academicYear: string;
   complexName: string;
+  isAdmin?: boolean;
 }
 
 interface LoadedSupportStaff extends SupportStaffRecord {
   source: 'firestore' | 'local';
 }
-
-const NATIONALITIES = [
-  'سعودي',
-  'سعودية',
-  'مصري',
-  'مصرية',
-  'سوداني',
-  'سودانية',
-  'هندي',
-  'نيبالي',
-  'بنجلاديشي',
-  'باكستاني',
-  'فلبيني',
-  'أردني',
-  'أردنية',
-  'سوري',
-  'سورية',
-  'يمني',
-  'يمنية',
-  'أخرى'
-];
-
-const SECTIONS = ['إدارة المجمع', 'بنين', 'بنات'];
-
-const BANKS = [
-  'مصرف الراجحي',
-  'البنك الأهلي السعودي (SNB)',
-  'مصرف الإنماء',
-  'بنك الرياض',
-  'بنك البلاد',
-  'البنك العربي الوطني (ANB)',
-  'بنك الجزيرة',
-  'البنك السعودي الأول (SAB)',
-  'البنك السعودي الفرنسي (BSF)',
-  'البنك السعودي للاستثمار (SAIB)',
-  'بنك الخليج الدولي',
-  'بنك دبي الإسلامي'
-];
 
 const STORAGE_KEY = 'registered_support_staff_fresh_v1';
 
@@ -78,22 +51,133 @@ const safeSetStorage = (key: string, val: string) => {
   } catch {}
 };
 
+type SupportOptionFieldKey = 'nationality' | 'section' | 'bank';
+
 export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
   onBack,
   academicYear,
-  complexName
+  complexName,
+  isAdmin = true
 }) => {
-  // الحقول الخاصة بالخدمات المساندة (بعد استبعاد المؤهل والتخصص ومادة التدريس ونصاب المعلم والرخصة المهنية وكلاسيرا)
+  // خيارات كافة المدخلات القابلة للتخصيص من قبل الأدمن
+  const [nationalityOptions, setNationalityOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_nationalities_v1', DEFAULT_NATIONALITIES)
+  );
+  const [sectionOptions, setSectionOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_support_sections_v1', DEFAULT_SUPPORT_SECTIONS)
+  );
+  const [bankOptions, setBankOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_banks_v1', DEFAULT_BANKS)
+  );
+
+  // مزامنة الخيارات مع فايربيس في الخلفية
+  useEffect(() => {
+    fetchCustomOptionsFromFirestore('custom_nationalities_v1', DEFAULT_NATIONALITIES).then(setNationalityOptions);
+    fetchCustomOptionsFromFirestore('custom_support_sections_v1', DEFAULT_SUPPORT_SECTIONS).then(setSectionOptions);
+    fetchCustomOptionsFromFirestore('custom_banks_v1', DEFAULT_BANKS).then(setBankOptions);
+  }, []);
+
+  // الحقول الخاصة بالخدمات المساندة
   const [jobNum, setJobNum] = useState('');
   const [name, setName] = useState('');
-  const [nationality, setNationality] = useState('سعودي');
-  const [section, setSection] = useState('إدارة المجمع');
+  const [nationality, setNationality] = useState(nationalityOptions[0] || 'سعودي');
+  const [section, setSection] = useState(sectionOptions[0] || 'إدارة المجمع');
   const [nationalId, setNationalId] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [ibanDigits, setIbanDigits] = useState('');
-  const [bank, setBank] = useState('مصرف الراجحي');
+  const [bank, setBank] = useState(bankOptions[0] || 'مصرف الراجحي');
   const [startDate, setStartDate] = useState('');
+
+  // حالة نافذة إدارة الخيارات للأدمن
+  const [optionManager, setOptionManager] = useState<{
+    isOpen: boolean;
+    fieldKey: SupportOptionFieldKey | '';
+    title: string;
+    options: string[];
+    accentColor: 'blue' | 'indigo' | 'emerald' | 'teal' | 'violet' | 'amber';
+  }>({
+    isOpen: false,
+    fieldKey: '',
+    title: '',
+    options: [],
+    accentColor: 'teal'
+  });
+
+  const openOptionManager = (
+    fieldKey: SupportOptionFieldKey,
+    title: string,
+    options: string[],
+    accentColor: 'blue' | 'indigo' | 'emerald' | 'teal' | 'violet' | 'amber' = 'teal'
+  ) => {
+    setOptionManager({
+      isOpen: true,
+      fieldKey,
+      title,
+      options,
+      accentColor
+    });
+  };
+
+  const applyOptionsUpdate = (key: SupportOptionFieldKey, newOpts: string[]) => {
+    let storageKey = '';
+    switch (key) {
+      case 'nationality':
+        setNationalityOptions(newOpts);
+        storageKey = 'custom_nationalities_v1';
+        break;
+      case 'section':
+        setSectionOptions(newOpts);
+        storageKey = 'custom_support_sections_v1';
+        break;
+      case 'bank':
+        setBankOptions(newOpts);
+        storageKey = 'custom_banks_v1';
+        break;
+    }
+    if (storageKey) {
+      saveCustomOptions(storageKey, newOpts);
+    }
+    setOptionManager(prev => ({ ...prev, options: newOpts }));
+  };
+
+  const handleAddOption = (newOpt: string) => {
+    if (!optionManager.fieldKey) return;
+    const current = optionManager.options;
+    const updated = [...current, newOpt];
+    applyOptionsUpdate(optionManager.fieldKey, updated);
+
+    switch (optionManager.fieldKey) {
+      case 'nationality': setNationality(newOpt); break;
+      case 'section': setSection(newOpt); break;
+      case 'bank': setBank(newOpt); break;
+    }
+  };
+
+  const handleDeleteOption = (optToDelete: string) => {
+    if (!optionManager.fieldKey) return;
+    const updated = optionManager.options.filter(o => o !== optToDelete);
+    applyOptionsUpdate(optionManager.fieldKey, updated);
+
+    const fallback = updated[0] || '';
+    switch (optionManager.fieldKey) {
+      case 'nationality': if (nationality === optToDelete) setNationality(fallback); break;
+      case 'section': if (section === optToDelete) setSection(fallback); break;
+      case 'bank': if (bank === optToDelete) setBank(fallback); break;
+    }
+  };
+
+  const handleEditOption = (oldOpt: string, newOpt: string) => {
+    if (!optionManager.fieldKey) return;
+    const updated = optionManager.options.map(o => o === oldOpt ? newOpt : o);
+    applyOptionsUpdate(optionManager.fieldKey, updated);
+
+    switch (optionManager.fieldKey) {
+      case 'nationality': if (nationality === oldOpt) setNationality(newOpt); break;
+      case 'section': if (section === oldOpt) setSection(newOpt); break;
+      case 'bank': if (bank === oldOpt) setBank(newOpt); break;
+    }
+  };
 
   // حالات البحث والموظف المحدد
   const [searchQuery, setSearchQuery] = useState('');
@@ -248,13 +332,13 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
     setIsSearchOpen(false);
     setJobNum('');
     setName('');
-    setNationality('سعودي');
-    setSection('إدارة المجمع');
+    setNationality(nationalityOptions[0] || 'سعودي');
+    setSection(sectionOptions[0] || 'إدارة المجمع');
     setNationalId('');
     setPhone('');
     setEmail('');
     setIbanDigits('');
-    setBank('مصرف الراجحي');
+    setBank(bankOptions[0] || 'مصرف الراجحي');
     setStartDate('');
     setErrorMessage(null);
   };
@@ -667,39 +751,29 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
                 />
               </div>
 
-              {/* 3. الجنسية */}
-              <div>
-                <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
-                  <Globe size={13} className="text-teal-600" />
-                  <span>الجنسية:</span>
-                </label>
-                <select
-                  value={nationality}
-                  onChange={(e) => setNationality(e.target.value)}
-                  className="w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer"
-                >
-                  {NATIONALITIES.map(nat => (
-                    <option key={nat} value={nat}>{nat}</option>
-                  ))}
-                </select>
-              </div>
+              {/* 3. الجنسية (اختيارات مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="الجنسية"
+                icon={<Globe size={13} className="text-teal-600" />}
+                value={nationality}
+                onChange={setNationality}
+                options={nationalityOptions}
+                onManageOptions={() => openOptionManager('nationality', 'الجنسية', nationalityOptions, 'teal')}
+                isAdmin={isAdmin}
+                accentColor="teal"
+              />
 
-              {/* 4. القسم (إدارة المجمع / بنين / بنات) */}
-              <div>
-                <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
-                  <Users size={13} className="text-teal-600" />
-                  <span>القسم:</span>
-                </label>
-                <select
-                  value={section}
-                  onChange={(e) => setSection(e.target.value)}
-                  className="w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer"
-                >
-                  {SECTIONS.map(sec => (
-                    <option key={sec} value={sec}>{sec}</option>
-                  ))}
-                </select>
-              </div>
+              {/* 4. القسم (إدارة المجمع / بنين / بنات مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="القسم"
+                icon={<Users size={13} className="text-teal-600" />}
+                value={section}
+                onChange={setSection}
+                options={sectionOptions}
+                onManageOptions={() => openOptionManager('section', 'القسم', sectionOptions, 'teal')}
+                isAdmin={isAdmin}
+                accentColor="teal"
+              />
 
               {/* 5. رقم الهوية */}
               <div>
@@ -815,22 +889,17 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
                 </div>
               </div>
 
-              {/* 9. البنك */}
-              <div>
-                <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
-                  <Landmark size={13} className="text-amber-700" />
-                  <span>اسم البنك:</span>
-                </label>
-                <select
-                  value={bank}
-                  onChange={(e) => setBank(e.target.value)}
-                  className="w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer"
-                >
-                  {BANKS.map(b => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
-              </div>
+              {/* 9. البنك (اختيارات مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="اسم البنك"
+                icon={<Landmark size={13} className="text-amber-700" />}
+                value={bank}
+                onChange={setBank}
+                options={bankOptions}
+                onManageOptions={() => openOptionManager('bank', 'اسم البنك', bankOptions, 'amber')}
+                isAdmin={isAdmin}
+                accentColor="amber"
+              />
 
               {/* 10. تاريخ المباشرة */}
               <div>
@@ -842,6 +911,7 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
                   value={startDate}
                   onChange={setStartDate}
                   accentColor="blue"
+                  dropUp={true}
                 />
               </div>
 
@@ -914,6 +984,18 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
         </form>
 
       </div>
+
+      {/* نافذة إدارة الخيارات للأدمن */}
+      <OptionManagerModal
+        isOpen={optionManager.isOpen}
+        onClose={() => setOptionManager(prev => ({ ...prev, isOpen: false }))}
+        title={optionManager.title}
+        options={optionManager.options}
+        onAddOption={handleAddOption}
+        onDeleteOption={handleDeleteOption}
+        onEditOption={handleEditOption}
+        accentColor={optionManager.accentColor}
+      />
     </div>
   );
 };

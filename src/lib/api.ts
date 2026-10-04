@@ -1,4 +1,5 @@
 import { db } from './firebase';
+export { db };
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, getDoc, setDoc } from 'firebase/firestore';
 
 const usersCol = collection(db, 'users');
@@ -99,6 +100,9 @@ export interface TeacherRecord {
   name: string;
   nationality: string;
   section: string;
+  track?: string;
+  stage?: string;
+  jobTitle?: string;
   nationalId: string;
   phone: string;
   quota: string;
@@ -146,6 +150,9 @@ export interface AdminRecord {
   name: string;
   nationality: string;
   section: string;
+  track?: string;
+  stage?: string;
+  jobTitle?: string;
   nationalId: string;
   phone: string;
   qualification: string;

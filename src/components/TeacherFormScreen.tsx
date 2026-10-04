@@ -3,7 +3,7 @@ import {
   GraduationCap, Save, User, Hash, Globe, Users, 
   CreditCard, Phone, Award, BookOpen, FileCheck, Sparkles, 
   Mail, Landmark, Calendar, Check, Copy, X, Trash2, Edit3, 
-  AlertCircle, Search
+  AlertCircle, Search, Briefcase, Plus, Compass
 } from 'lucide-react';
 import { 
   TeacherRecord, 
@@ -13,138 +13,36 @@ import {
   updateTeacherInFirestore
 } from '../lib/api';
 import { DatePickerField } from './DatePickerField';
+import { OptionManagerModal } from './OptionManagerModal';
+import { ManagedSelectField } from './ManagedSelectField';
+import {
+  DEFAULT_NATIONALITIES,
+  DEFAULT_TEACHER_SECTIONS,
+  DEFAULT_TRACKS,
+  DEFAULT_TEACHER_STAGES,
+  DEFAULT_TEACHER_JOBS,
+  DEFAULT_QUOTAS,
+  DEFAULT_TEACHER_QUALIFICATIONS,
+  DEFAULT_TEACHER_SPECIALIZATIONS,
+  DEFAULT_SUBJECTS,
+  DEFAULT_LICENSES,
+  DEFAULT_CLASSERA_LEVELS,
+  DEFAULT_BANKS,
+  loadCustomOptions,
+  saveCustomOptions,
+  fetchCustomOptionsFromFirestore
+} from '../lib/customOptions';
 
 interface TeacherFormScreenProps {
   onBack: () => void;
   academicYear: string;
   complexName: string;
+  isAdmin?: boolean;
 }
 
 interface LoadedTeacher extends TeacherRecord {
   source: 'firestore' | 'local';
 }
-
-// قائمة الجنسيات (تشمل جنسيات المعلمين + الخدمات المساندة)
-const NATIONALITIES = [
-  'سعودي',
-  'سعودية',
-  'مصري',
-  'مصرية',
-  'أردني',
-  'أردنية',
-  'سوري',
-  'سورية',
-  'سوداني',
-  'سودانية',
-  'يمني',
-  'يمنية',
-  'هندي',
-  'باكستاني',
-  'بنجلاديشي',
-  'نيبالي',
-  'فلبيني'
-];
-
-const SECTIONS = ['بنين', 'بنات'];
-
-// نصاب الحصص: الاختيارات من 1 إلى 35
-const QUOTAS = Array.from({ length: 35 }, (_, i) => String(i + 1));
-
-const QUALIFICATIONS = [
-  'بكالوريوس',
-  'بكالوريوس تربية',
-  'بكالوريوس علوم وتربية',
-  'بكالوريوس خدمة اجتماعية',
-  'بكالوريوس تربية رياضية',
-  'بكالوريوس تربية نوعية',
-  'بكالوريوس دار علوم',
-  'ليسانس آداب',
-  'ليسانس آداب وتربية',
-  'ليسانس أزهر',
-  'ماجستير',
-  'دكتوراه',
-  'دبلوم',
-  'دبلوم عالي'
-];
-
-const SPECIALIZATIONS = [
-  'رياضيات',
-  'لغة عربية',
-  'لغة إنجليزية',
-  'علوم',
-  'فيزياء',
-  'كيمياء',
-  'أحياء',
-  'تربية إسلامية',
-  'دراسات اجتماعية',
-  'مهارات رقمية / حاسب آلي',
-  'تربية بدنية',
-  'تربية فنية',
-  'صفوف أولية',
-  'رياض أطفال',
-  'علم نفس',
-  'علم اجتماع',
-  'تاريخ',
-  'جغرافيا',
-  'صعوبات تعلم',
-  'موهوبين'
-];
-
-const SUBJECTS = [
-  'رياضيات',
-  'لغة عربية',
-  'لغة إنجليزية',
-  'علوم',
-  'فيزياء',
-  'كيمياء',
-  'أحياء',
-  'دراسات إسلامية',
-  'قرآن كريم',
-  'توحيد',
-  'فقه',
-  'حديث',
-  'تفسير',
-  'دراسات اجتماعية',
-  'مهارات رقمية / حاسب آلي',
-  'تربية بدنية والدفاع عن النفس',
-  'تربية فنية',
-  'تفكير ناقد',
-  'علم البيئة',
-  'مهارات حياتية وأسرية',
-  'لغة فرنسية',
-  'لغة صينية',
-  'صفوف أولية',
-  'رياض أطفال'
-];
-
-const LICENSES = [
-  { value: '0', label: '0' },
-  { value: '1', label: '1' }
-];
-
-// كلاسيرا: خبير ثم محترف
-const CLASSERA_LEVELS = [
-  'ممارس',
-  'متقدم',
-  'خبير',
-  'محترف',
-  'غير محدد'
-];
-
-const BANKS = [
-  'مصرف الراجحي',
-  'البنك الأهلي السعودي (SNB)',
-  'مصرف الإنماء',
-  'بنك الرياض',
-  'بنك البلاد',
-  'البنك العربي الوطني (ANB)',
-  'بنك الجزيرة',
-  'البنك السعودي الأول (SAB)',
-  'البنك السعودي الفرنسي (BSF)',
-  'البنك السعودي للاستثمار (SAIB)',
-  'بنك الخليج الدولي',
-  'بنك دبي الإسلامي'
-];
 
 const STORAGE_KEY = 'registered_teachers_fresh_v1';
 
@@ -162,28 +60,254 @@ const safeSetStorage = (key: string, val: string) => {
   } catch {}
 };
 
+type OptionFieldKey = 
+  | 'nationality' 
+  | 'section' 
+  | 'track'
+  | 'stage' 
+  | 'job' 
+  | 'quota' 
+  | 'qualification' 
+  | 'specialization' 
+  | 'subject' 
+  | 'license' 
+  | 'classera' 
+  | 'bank';
+
 export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
   onBack,
   academicYear,
-  complexName
+  complexName,
+  isAdmin = true
 }) => {
-  // الحقول الـ 16 المطلوبة
+  // خيارات كافة المدخلات القابلة للتخصيص من قبل الأدمن (إضافة / تعديل / حذف)
+  const [nationalityOptions, setNationalityOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_nationalities_v1', DEFAULT_NATIONALITIES)
+  );
+  const [sectionOptions, setSectionOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_teacher_sections_v1', DEFAULT_TEACHER_SECTIONS)
+  );
+  const [trackOptions, setTrackOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_tracks_v1', DEFAULT_TRACKS)
+  );
+  const [stageOptions, setStageOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_teacher_stages_v1', DEFAULT_TEACHER_STAGES)
+  );
+  const [jobOptions, setJobOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_teacher_jobs_v1', DEFAULT_TEACHER_JOBS)
+  );
+  const [quotaOptions, setQuotaOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_teacher_quotas_v1', DEFAULT_QUOTAS)
+  );
+  const [qualificationOptions, setQualificationOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_teacher_qualifications_v1', DEFAULT_TEACHER_QUALIFICATIONS)
+  );
+  const [specializationOptions, setSpecializationOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_teacher_specializations_v1', DEFAULT_TEACHER_SPECIALIZATIONS)
+  );
+  const [subjectOptions, setSubjectOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_teacher_subjects_v1', DEFAULT_SUBJECTS)
+  );
+  const [licenseOptions, setLicenseOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_teacher_licenses_v1', DEFAULT_LICENSES)
+  );
+  const [classeraOptions, setClasseraOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_teacher_classeras_v1', DEFAULT_CLASSERA_LEVELS)
+  );
+  const [bankOptions, setBankOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_banks_v1', DEFAULT_BANKS)
+  );
+
+  // مزامنة الخيارات مع فايربيس في الخلفية
+  useEffect(() => {
+    fetchCustomOptionsFromFirestore('custom_nationalities_v1', DEFAULT_NATIONALITIES).then(setNationalityOptions);
+    fetchCustomOptionsFromFirestore('custom_teacher_sections_v1', DEFAULT_TEACHER_SECTIONS).then(setSectionOptions);
+    fetchCustomOptionsFromFirestore('custom_tracks_v1', DEFAULT_TRACKS).then(setTrackOptions);
+    fetchCustomOptionsFromFirestore('custom_teacher_stages_v1', DEFAULT_TEACHER_STAGES).then(setStageOptions);
+    fetchCustomOptionsFromFirestore('custom_teacher_jobs_v1', DEFAULT_TEACHER_JOBS).then(setJobOptions);
+    fetchCustomOptionsFromFirestore('custom_teacher_quotas_v1', DEFAULT_QUOTAS).then(setQuotaOptions);
+    fetchCustomOptionsFromFirestore('custom_teacher_qualifications_v1', DEFAULT_TEACHER_QUALIFICATIONS).then(setQualificationOptions);
+    fetchCustomOptionsFromFirestore('custom_teacher_specializations_v1', DEFAULT_TEACHER_SPECIALIZATIONS).then(setSpecializationOptions);
+    fetchCustomOptionsFromFirestore('custom_teacher_subjects_v1', DEFAULT_SUBJECTS).then(setSubjectOptions);
+    fetchCustomOptionsFromFirestore('custom_teacher_licenses_v1', DEFAULT_LICENSES).then(setLicenseOptions);
+    fetchCustomOptionsFromFirestore('custom_teacher_classeras_v1', DEFAULT_CLASSERA_LEVELS).then(setClasseraOptions);
+    fetchCustomOptionsFromFirestore('custom_banks_v1', DEFAULT_BANKS).then(setBankOptions);
+  }, []);
+
+  // الحقول المطلوبة للكادر التعليمي
   const [jobNum, setJobNum] = useState('');
   const [name, setName] = useState('');
-  const [nationality, setNationality] = useState('سعودي');
-  const [section, setSection] = useState('بنين');
+  const [nationality, setNationality] = useState(nationalityOptions[0] || 'سعودي');
+  const [section, setSection] = useState(sectionOptions[0] || 'بنين');
+  const [track, setTrack] = useState(trackOptions[0] || 'أهلي');
+  const [stage, setStage] = useState(stageOptions[0] || 'ابتدائي');
+  const [jobTitle, setJobTitle] = useState(jobOptions[0] || 'معلم');
   const [nationalId, setNationalId] = useState('');
   const [phone, setPhone] = useState('');
   const [quota, setQuota] = useState('24');
-  const [qualification, setQualification] = useState('بكالوريوس');
-  const [specialization, setSpecialization] = useState('رياضيات');
-  const [subject, setSubject] = useState('رياضيات');
-  const [license, setLicense] = useState('1');
-  const [classera, setClassera] = useState('ممارس');
+  const [qualification, setQualification] = useState(qualificationOptions[0] || 'بكالوريوس');
+  const [specialization, setSpecialization] = useState(specializationOptions[0] || 'رياضيات');
+  const [subject, setSubject] = useState(subjectOptions[0] || 'رياضيات');
+  const [license, setLicense] = useState(licenseOptions[0] || '1');
+  const [classera, setClassera] = useState(classeraOptions[0] || 'ممارس');
   const [email, setEmail] = useState('');
   const [ibanDigits, setIbanDigits] = useState('');
-  const [bank, setBank] = useState('مصرف الراجحي');
+  const [bank, setBank] = useState(bankOptions[0] || 'مصرف الراجحي');
   const [startDate, setStartDate] = useState('');
+
+  // حالة نافذة إدارة الخيارات للأدمن
+  const [optionManager, setOptionManager] = useState<{
+    isOpen: boolean;
+    fieldKey: OptionFieldKey | '';
+    title: string;
+    options: string[];
+    accentColor: 'blue' | 'indigo' | 'emerald' | 'teal' | 'violet' | 'amber';
+  }>({
+    isOpen: false,
+    fieldKey: '',
+    title: '',
+    options: [],
+    accentColor: 'blue'
+  });
+
+  const openOptionManager = (
+    fieldKey: OptionFieldKey,
+    title: string,
+    options: string[],
+    accentColor: 'blue' | 'indigo' | 'emerald' | 'teal' | 'violet' | 'amber' = 'blue'
+  ) => {
+    setOptionManager({
+      isOpen: true,
+      fieldKey,
+      title,
+      options,
+      accentColor
+    });
+  };
+
+  const applyOptionsUpdate = (key: OptionFieldKey, newOpts: string[]) => {
+    let storageKey = '';
+    switch (key) {
+      case 'nationality':
+        setNationalityOptions(newOpts);
+        storageKey = 'custom_nationalities_v1';
+        break;
+      case 'section':
+        setSectionOptions(newOpts);
+        storageKey = 'custom_teacher_sections_v1';
+        break;
+      case 'track':
+        setTrackOptions(newOpts);
+        storageKey = 'custom_tracks_v1';
+        break;
+      case 'stage':
+        setStageOptions(newOpts);
+        storageKey = 'custom_teacher_stages_v1';
+        break;
+      case 'job':
+        setJobOptions(newOpts);
+        storageKey = 'custom_teacher_jobs_v1';
+        break;
+      case 'quota':
+        setQuotaOptions(newOpts);
+        storageKey = 'custom_teacher_quotas_v1';
+        break;
+      case 'qualification':
+        setQualificationOptions(newOpts);
+        storageKey = 'custom_teacher_qualifications_v1';
+        break;
+      case 'specialization':
+        setSpecializationOptions(newOpts);
+        storageKey = 'custom_teacher_specializations_v1';
+        break;
+      case 'subject':
+        setSubjectOptions(newOpts);
+        storageKey = 'custom_teacher_subjects_v1';
+        break;
+      case 'license':
+        setLicenseOptions(newOpts);
+        storageKey = 'custom_teacher_licenses_v1';
+        break;
+      case 'classera':
+        setClasseraOptions(newOpts);
+        storageKey = 'custom_teacher_classeras_v1';
+        break;
+      case 'bank':
+        setBankOptions(newOpts);
+        storageKey = 'custom_banks_v1';
+        break;
+    }
+    if (storageKey) {
+      saveCustomOptions(storageKey, newOpts);
+    }
+    setOptionManager(prev => ({ ...prev, options: newOpts }));
+  };
+
+  const handleAddOption = (newOpt: string) => {
+    if (!optionManager.fieldKey) return;
+    const current = optionManager.options;
+    const updated = [...current, newOpt];
+    applyOptionsUpdate(optionManager.fieldKey, updated);
+
+    // تحديث القيمة المختارة بالخيار المضاف
+    switch (optionManager.fieldKey) {
+      case 'nationality': setNationality(newOpt); break;
+      case 'section': setSection(newOpt); break;
+      case 'track': setTrack(newOpt); break;
+      case 'stage': setStage(newOpt); break;
+      case 'job': setJobTitle(newOpt); break;
+      case 'quota': setQuota(newOpt); break;
+      case 'qualification': setQualification(newOpt); break;
+      case 'specialization': setSpecialization(newOpt); break;
+      case 'subject': setSubject(newOpt); break;
+      case 'license': setLicense(newOpt); break;
+      case 'classera': setClassera(newOpt); break;
+      case 'bank': setBank(newOpt); break;
+    }
+  };
+
+  const handleDeleteOption = (optToDelete: string) => {
+    if (!optionManager.fieldKey) return;
+    const updated = optionManager.options.filter(o => o !== optToDelete);
+    applyOptionsUpdate(optionManager.fieldKey, updated);
+
+    const fallback = updated[0] || '';
+    switch (optionManager.fieldKey) {
+      case 'nationality': if (nationality === optToDelete) setNationality(fallback); break;
+      case 'section': if (section === optToDelete) setSection(fallback); break;
+      case 'track': if (track === optToDelete) setTrack(fallback); break;
+      case 'stage': if (stage === optToDelete) setStage(fallback); break;
+      case 'job': if (jobTitle === optToDelete) setJobTitle(fallback); break;
+      case 'quota': if (quota === optToDelete) setQuota(fallback); break;
+      case 'qualification': if (qualification === optToDelete) setQualification(fallback); break;
+      case 'specialization': if (specialization === optToDelete) setSpecialization(fallback); break;
+      case 'subject': if (subject === optToDelete) setSubject(fallback); break;
+      case 'license': if (license === optToDelete) setLicense(fallback); break;
+      case 'classera': if (classera === optToDelete) setClassera(fallback); break;
+      case 'bank': if (bank === optToDelete) setBank(fallback); break;
+    }
+  };
+
+  const handleEditOption = (oldOpt: string, newOpt: string) => {
+    if (!optionManager.fieldKey) return;
+    const updated = optionManager.options.map(o => o === oldOpt ? newOpt : o);
+    applyOptionsUpdate(optionManager.fieldKey, updated);
+
+    switch (optionManager.fieldKey) {
+      case 'nationality': if (nationality === oldOpt) setNationality(newOpt); break;
+      case 'section': if (section === oldOpt) setSection(newOpt); break;
+      case 'track': if (track === oldOpt) setTrack(newOpt); break;
+      case 'stage': if (stage === oldOpt) setStage(newOpt); break;
+      case 'job': if (jobTitle === oldOpt) setJobTitle(newOpt); break;
+      case 'quota': if (quota === oldOpt) setQuota(newOpt); break;
+      case 'qualification': if (qualification === oldOpt) setQualification(newOpt); break;
+      case 'specialization': if (specialization === oldOpt) setSpecialization(newOpt); break;
+      case 'subject': if (subject === oldOpt) setSubject(newOpt); break;
+      case 'license': if (license === oldOpt) setLicense(newOpt); break;
+      case 'classera': if (classera === oldOpt) setClassera(newOpt); break;
+      case 'bank': if (bank === oldOpt) setBank(newOpt); break;
+    }
+  };
 
   // حالات البحث والمعلم المحدد
   const [searchQuery, setSearchQuery] = useState('');
@@ -316,6 +440,9 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
     setName(teacher.name || '');
     setNationality(teacher.nationality || 'سعودي');
     setSection(teacher.section || 'بنين');
+    setTrack(teacher.track || trackOptions[0] || 'أهلي');
+    setStage(teacher.stage || stageOptions[0] || 'ابتدائي');
+    setJobTitle(teacher.jobTitle || jobOptions[0] || 'معلم');
     setNationalId(teacher.nationalId || '');
     setPhone(teacher.phone || '');
     setQuota(teacher.quota || '24');
@@ -347,19 +474,22 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
     setIsSearchOpen(false);
     setJobNum('');
     setName('');
-    setNationality('سعودي');
-    setSection('بنين');
+    setNationality(nationalityOptions[0] || 'سعودي');
+    setSection(sectionOptions[0] || 'بنين');
+    setTrack(trackOptions[0] || 'أهلي');
+    setStage(stageOptions[0] || 'ابتدائي');
+    setJobTitle(jobOptions[0] || 'معلم');
     setNationalId('');
     setPhone('');
-    setQuota('24');
-    setQualification('بكالوريوس');
-    setSpecialization('رياضيات');
-    setSubject('رياضيات');
-    setLicense('1');
-    setClassera('ممارس');
+    setQuota(quotaOptions.includes('24') ? '24' : (quotaOptions[0] || '24'));
+    setQualification(qualificationOptions[0] || 'بكالوريوس');
+    setSpecialization(specializationOptions[0] || 'رياضيات');
+    setSubject(subjectOptions[0] || 'رياضيات');
+    setLicense(licenseOptions[0] || '1');
+    setClassera(classeraOptions[0] || 'ممارس');
     setEmail('');
     setIbanDigits('');
-    setBank('مصرف الراجحي');
+    setBank(bankOptions[0] || 'مصرف الراجحي');
     setStartDate('');
     setErrorMessage(null);
   };
@@ -386,6 +516,9 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
       name: name.trim(),
       nationality: nationality.trim(),
       section: section.trim(),
+      track: track.trim(),
+      stage: stage.trim(),
+      jobTitle: jobTitle.trim(),
       nationalId: nationalId.trim(),
       phone: phone.trim(),
       quota: quota.trim(),
@@ -453,6 +586,9 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
       name: name.trim(),
       nationality: nationality.trim(),
       section: section.trim(),
+      track: track.trim(),
+      stage: stage.trim(),
+      jobTitle: jobTitle.trim(),
       nationalId: nationalId.trim(),
       phone: phone.trim(),
       quota: quota.trim(),
@@ -784,39 +920,65 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
                 />
               </div>
 
-              {/* 3. الجنسية (حقل اختياري يشمل جنسيات المعلمين + الخدمات المساندة) */}
-              <div>
-                <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
-                  <Globe size={13} className="text-blue-600" />
-                  <span>الجنسية:</span>
-                </label>
-                <select
-                  value={nationality}
-                  onChange={(e) => setNationality(e.target.value)}
-                  className="w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer"
-                >
-                  {NATIONALITIES.map(nat => (
-                    <option key={nat} value={nat}>{nat}</option>
-                  ))}
-                </select>
-              </div>
+              {/* 3. الجنسية (خلية اختيارات مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="الجنسية"
+                icon={<Globe size={13} className="text-blue-600" />}
+                value={nationality}
+                onChange={setNationality}
+                options={nationalityOptions}
+                onManageOptions={() => openOptionManager('nationality', 'الجنسية', nationalityOptions, 'blue')}
+                isAdmin={isAdmin}
+                accentColor="blue"
+              />
 
-              {/* 4. القسم (اختيارات: بنين / بنات) */}
-              <div>
-                <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
-                  <Users size={13} className="text-indigo-600" />
-                  <span>القسم:</span>
-                </label>
-                <select
-                  value={section}
-                  onChange={(e) => setSection(e.target.value)}
-                  className="w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer"
-                >
-                  {SECTIONS.map(sec => (
-                    <option key={sec} value={sec}>{sec}</option>
-                  ))}
-                </select>
-              </div>
+              {/* 4. القسم (اختيارات مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="القسم"
+                icon={<Users size={13} className="text-indigo-600" />}
+                value={section}
+                onChange={setSection}
+                options={sectionOptions}
+                onManageOptions={() => openOptionManager('section', 'القسم', sectionOptions, 'indigo')}
+                isAdmin={isAdmin}
+                accentColor="indigo"
+              />
+
+              {/* 5. المسار (مشترك بين الكادر التعليمي والإداري مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="المسار"
+                icon={<Compass size={13} className="text-sky-600" />}
+                value={track}
+                onChange={setTrack}
+                options={trackOptions}
+                onManageOptions={() => openOptionManager('track', 'المسار', trackOptions, 'blue')}
+                isAdmin={isAdmin}
+                accentColor="blue"
+              />
+
+              {/* 6. المرحلة (تحت القسم مباشرة مع إمكانية إدارة الخيارات للأدمن) */}
+              <ManagedSelectField
+                label="المرحلة"
+                icon={<BookOpen size={13} className="text-blue-600" />}
+                value={stage}
+                onChange={setStage}
+                options={stageOptions}
+                onManageOptions={() => openOptionManager('stage', 'المرحلة', stageOptions, 'blue')}
+                isAdmin={isAdmin}
+                accentColor="blue"
+              />
+
+              {/* 7. الوظيفة (تحت القسم مباشرة مع إمكانية إدارة الخيارات للأدمن) */}
+              <ManagedSelectField
+                label="الوظيفة"
+                icon={<Briefcase size={13} className="text-blue-600" />}
+                value={jobTitle}
+                onChange={setJobTitle}
+                options={jobOptions}
+                onManageOptions={() => openOptionManager('job', 'الوظيفة', jobOptions, 'blue')}
+                isAdmin={isAdmin}
+                accentColor="blue"
+              />
 
               {/* 5. رقم الهوية */}
               <div>
@@ -854,107 +1016,78 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
                 />
               </div>
 
-              {/* 7. نصاب المعلم (الحصص من 1 إلى 35) */}
-              <div>
-                <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
-                  <GraduationCap size={13} className="text-teal-600" />
-                  <span>نصاب المعلم (1 إلى 35):</span>
-                </label>
-                <select
-                  value={quota}
-                  onChange={(e) => setQuota(e.target.value)}
-                  className="w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer font-mono"
-                >
-                  {QUOTAS.map(q => (
-                    <option key={q} value={q}>{q} حصة</option>
-                  ))}
-                </select>
-              </div>
+              {/* 7. نصاب المعلم (الحصص من 1 إلى 35 مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="نصاب المعلم (1 إلى 35)"
+                icon={<GraduationCap size={13} className="text-teal-600" />}
+                value={quota}
+                onChange={setQuota}
+                options={quotaOptions}
+                formatOptionLabel={(q) => `${q} حصة`}
+                onManageOptions={() => openOptionManager('quota', 'نصاب المعلم', quotaOptions, 'teal')}
+                isAdmin={isAdmin}
+                accentColor="teal"
+              />
 
-              {/* 8. المؤهل (خلية اختيارات) */}
-              <div>
-                <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
-                  <Award size={13} className="text-teal-600" />
-                  <span>المؤهل:</span>
-                </label>
-                <select
-                  value={qualification}
-                  onChange={(e) => setQualification(e.target.value)}
-                  className="w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer"
-                >
-                  {QUALIFICATIONS.map(q => (
-                    <option key={q} value={q}>{q}</option>
-                  ))}
-                </select>
-              </div>
+              {/* 8. المؤهل (خلية اختيارات مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="المؤهل"
+                icon={<Award size={13} className="text-teal-600" />}
+                value={qualification}
+                onChange={setQualification}
+                options={qualificationOptions}
+                onManageOptions={() => openOptionManager('qualification', 'المؤهل', qualificationOptions, 'teal')}
+                isAdmin={isAdmin}
+                accentColor="teal"
+              />
 
-              {/* 9. التخصص (خلية اختيارات) */}
-              <div>
-                <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
-                  <BookOpen size={13} className="text-teal-600" />
-                  <span>التخصص:</span>
-                </label>
-                <select
-                  value={specialization}
-                  onChange={(e) => setSpecialization(e.target.value)}
-                  className="w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer"
-                >
-                  {SPECIALIZATIONS.map(spec => (
-                    <option key={spec} value={spec}>{spec}</option>
-                  ))}
-                </select>
-              </div>
+              {/* 9. التخصص (خلية اختيارات مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="التخصص"
+                icon={<BookOpen size={13} className="text-teal-600" />}
+                value={specialization}
+                onChange={setSpecialization}
+                options={specializationOptions}
+                onManageOptions={() => openOptionManager('specialization', 'التخصص', specializationOptions, 'teal')}
+                isAdmin={isAdmin}
+                accentColor="teal"
+              />
 
-              {/* 10. مادة التدريس (خلية اختيارات) */}
-              <div>
-                <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
-                  <BookOpen size={13} className="text-violet-600" />
-                  <span>مادة التدريس:</span>
-                </label>
-                <select
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer"
-                >
-                  {SUBJECTS.map(subj => (
-                    <option key={subj} value={subj}>{subj}</option>
-                  ))}
-                </select>
-              </div>
+              {/* 10. مادة التدريس (خلية اختيارات مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="مادة التدريس"
+                icon={<BookOpen size={13} className="text-violet-600" />}
+                value={subject}
+                onChange={setSubject}
+                options={subjectOptions}
+                onManageOptions={() => openOptionManager('subject', 'مادة التدريس', subjectOptions, 'violet')}
+                isAdmin={isAdmin}
+                accentColor="violet"
+              />
 
-              {/* 11. الرخصة المهنية (اختيارات 0 أو 1) */}
-              <div>
-                <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
-                  <FileCheck size={13} className="text-emerald-600" />
-                  <span>الرخصة المهنية:</span>
-                </label>
-                <select
-                  value={license}
-                  onChange={(e) => setLicense(e.target.value)}
-                  className="w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer font-mono"
-                >
-                  {LICENSES.map(lic => (
-                    <option key={lic.value} value={lic.value}>{lic.label}</option>
-                  ))}
-                </select>
-              </div>
+              {/* 11. الرخصة المهنية (اختيارات مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="الرخصة المهنية"
+                icon={<FileCheck size={13} className="text-emerald-600" />}
+                value={license}
+                onChange={setLicense}
+                options={licenseOptions}
+                onManageOptions={() => openOptionManager('license', 'الرخصة المهنية', licenseOptions, 'emerald')}
+                isAdmin={isAdmin}
+                accentColor="emerald"
+              />
 
-              {/* 12. كلاسيرا (استبدال خيار قائد إلى محترف) */}
-              <div>
-                <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
-                  <Sparkles size={13} className="text-amber-500" />
-                  <span>كلاسيرا:</span>
-                </label>
-                <select
-                  value={classera}
-                  onChange={(e) => setClassera(e.target.value)}
-                  className="w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer"
-                >
-                  {CLASSERA_LEVELS.map(lvl => (
-                    <option key={lvl} value={lvl}>{lvl}</option>
-                  ))}
-                </select>
-              </div>
+              {/* 12. كلاسيرا (اختيارات مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="كلاسيرا"
+                icon={<Sparkles size={13} className="text-amber-500" />}
+                value={classera}
+                onChange={setClassera}
+                options={classeraOptions}
+                onManageOptions={() => openOptionManager('classera', 'كلاسيرا', classeraOptions, 'amber')}
+                isAdmin={isAdmin}
+                accentColor="amber"
+              />
 
               {/* 13. الإيميل (كتابة مع إكمال تلقائي عند كتابة @) */}
               <div>
@@ -1034,22 +1167,17 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
                 </div>
               </div>
 
-              {/* 15. البنك (خلية اختيارات) */}
-              <div>
-                <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
-                  <Landmark size={13} className="text-amber-700" />
-                  <span>اسم البنك:</span>
-                </label>
-                <select
-                  value={bank}
-                  onChange={(e) => setBank(e.target.value)}
-                  className="w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer"
-                >
-                  {BANKS.map(b => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
-              </div>
+              {/* 15. البنك (خلية اختيارات مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="اسم البنك"
+                icon={<Landmark size={13} className="text-amber-700" />}
+                value={bank}
+                onChange={setBank}
+                options={bankOptions}
+                onManageOptions={() => openOptionManager('bank', 'اسم البنك', bankOptions, 'amber')}
+                isAdmin={isAdmin}
+                accentColor="amber"
+              />
 
               {/* 16. تاريخ المباشرة */}
               <div>
@@ -1061,6 +1189,7 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
                   value={startDate}
                   onChange={setStartDate}
                   accentColor="blue"
+                  dropUp={true}
                 />
               </div>
 
@@ -1133,6 +1262,18 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
         </form>
 
       </div>
+
+      {/* نافذة إدارة الخيارات للأدمن */}
+      <OptionManagerModal
+        isOpen={optionManager.isOpen}
+        onClose={() => setOptionManager(prev => ({ ...prev, isOpen: false }))}
+        title={optionManager.title}
+        options={optionManager.options}
+        onAddOption={handleAddOption}
+        onDeleteOption={handleDeleteOption}
+        onEditOption={handleEditOption}
+        accentColor={optionManager.accentColor}
+      />
     </div>
   );
 };
