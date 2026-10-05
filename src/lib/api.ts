@@ -197,6 +197,8 @@ export interface SupportStaffRecord {
   name: string;
   nationality: string;
   section: string;
+  stage?: string;
+  jobTitle?: string;
   nationalId: string;
   phone: string;
   email: string;
@@ -230,6 +232,60 @@ export const updateSupportStaffInFirestore = async (id: string, staff: Partial<S
   await updateDoc(doc(db, 'support_staff', id), staff);
   return { success: true };
 };
+
+// Classes and Students Statistics Management (إحصاء الفصول والطلاب)
+export interface ClassStatsRecord {
+  id?: string;
+  complexName?: string;
+  academicYear?: string;
+  track: string;              // المسار العام: أهلي / دولي / ...
+  section: string;            // القسم: بنين / بنات
+  stage: string;              // المرحلة: تمهيدي / ابتدائي / متوسط / ثانوي
+  grade: string;              // الصف: KG 1 / أول ابتدائي / ...
+  classCount: number;         // عدد الفصول (1 إلى 10)
+  secondaryTrack?: string;    // مسار المرحلة الثانوية التخصصي: مسار عام / مسار هندسة / مسار صحة وحياة / مسار إدارة
+  studentType?: 'بنين' | 'بنات'; // نوع الطلاب (لغير التمهيدي)
+  // أعداد الطلاب العامة
+  saudiCount: number;         // عدد السعوديين
+  nonSaudiCount: number;      // عدد غير السعوديين
+  totalStudents: number;      // إجمالي عدد الطلاب في هذا الصف
+  // تفصيل أعداد التمهيدي (بنين وبنات وسعودي وغير سعودي)
+  kgBoysSaudi?: number;
+  kgBoysNonSaudi?: number;
+  kgGirlsSaudi?: number;
+  kgGirlsNonSaudi?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+const classStatsCol = collection(db, 'classes_stats');
+
+export const saveClassStatsToFirestore = async (stats: ClassStatsRecord): Promise<any> => {
+  const docRef = await addDoc(classStatsCol, {
+    ...stats,
+    createdAt: new Date().toISOString()
+  });
+  return { success: true, id: docRef.id };
+};
+
+export const getClassStatsFromFirestore = async (): Promise<ClassStatsRecord[]> => {
+  const snapshot = await getDocs(classStatsCol);
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ClassStatsRecord));
+};
+
+export const deleteClassStatsFromFirestore = async (id: string): Promise<any> => {
+  await deleteDoc(doc(db, 'classes_stats', id));
+  return { success: true };
+};
+
+export const updateClassStatsInFirestore = async (id: string, stats: Partial<ClassStatsRecord>): Promise<any> => {
+  await updateDoc(doc(db, 'classes_stats', id), {
+    ...stats,
+    updatedAt: new Date().toISOString()
+  });
+  return { success: true };
+};
+
 
 
 

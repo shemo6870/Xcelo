@@ -27,7 +27,7 @@ export const DEFAULT_TEACHER_SECTIONS = ['بنين', 'بنات'];
 export const DEFAULT_ADMIN_SECTIONS = ['إدارة المجمع', 'بنين', 'بنات'];
 export const DEFAULT_SUPPORT_SECTIONS = ['إدارة المجمع', 'بنين', 'بنات'];
 
-// 2.5 المسارات (مشتركة بين الكادر التعليمي والكادر الإداري مع إدارة للأدمن)
+// 2.5 المسارات (مشتركة بين الكوادر والبطاقات مع إدارة للأدمن)
 export const DEFAULT_TRACKS = [
   'أهلي',
   'دولي',
@@ -36,6 +36,65 @@ export const DEFAULT_TRACKS = [
   'مصري',
   'تربية خاصة',
   'فرنسي'
+];
+
+// مسارات المرحلة الثانوية التخصصية
+export const DEFAULT_SECONDARY_TRACKS = [
+  'مسار عام',
+  'مسار هندسة',
+  'مسار صحة وحياة',
+  'مسار إدارة'
+];
+
+// أقسام إحصاء الطلاب
+export const DEFAULT_STUDENT_SECTIONS = ['بنين', 'بنات'];
+
+// مراحل البنين (بدون تمهيدي حسب طلب المستخدم)
+export const DEFAULT_BOYS_STAGES = [
+  'ابتدائي',
+  'متوسط',
+  'ثانوي'
+];
+
+// مراحل البنات (تتضمن تمهيدي)
+export const DEFAULT_GIRLS_STAGES = [
+  'تمهيدي',
+  'ابتدائي',
+  'متوسط',
+  'ثانوي'
+];
+
+// صفوف كل مرحلة
+export const DEFAULT_KG_GRADES = [
+  'KG 1',
+  'KG 2',
+  'KG 3'
+];
+
+export const DEFAULT_PRIMARY_GRADES = [
+  'أول ابتدائي',
+  'ثاني ابتدائي',
+  'ثالث ابتدائي',
+  'رابع ابتدائي',
+  'خامس ابتدائي',
+  'سادس ابتدائي'
+];
+
+export const DEFAULT_MIDDLE_GRADES = [
+  'أول متوسط',
+  'ثاني متوسط',
+  'ثالث متوسط'
+];
+
+export const DEFAULT_SECONDARY_GRADES = [
+  'أول ثانوي',
+  'ثاني ثانوي',
+  'ثالث ثانوي'
+];
+
+// عدد الفصول (1 إلى 10)
+export const DEFAULT_CLASS_COUNTS = [
+  '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'
 ];
 
 // 3. المراحل
@@ -48,6 +107,15 @@ export const DEFAULT_TEACHER_STAGES = [
 ];
 
 export const DEFAULT_ADMIN_STAGES = [
+  'إدارة المجمع',
+  'رياض أطفال',
+  'ابتدائي',
+  'متوسط',
+  'ثانوي',
+  'جميع المراحل'
+];
+
+export const DEFAULT_SUPPORT_STAGES = [
   'إدارة المجمع',
   'رياض أطفال',
   'ابتدائي',
@@ -85,6 +153,13 @@ export const DEFAULT_ADMIN_JOBS = [
   'أمين مستودع',
   'مشرف مقيم',
   'أخرى'
+];
+
+export const DEFAULT_SUPPORT_JOBS = [
+  'سائق',
+  'عامل',
+  'عاملة',
+  'فني'
 ];
 
 // 5. نصاب الحصص (1 إلى 35)

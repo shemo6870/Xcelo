@@ -3,7 +3,7 @@ import {
   HeartHandshake, Save, User, Hash, Globe, Users, 
   CreditCard, Phone, 
   Mail, Landmark, Calendar, Check, Copy, X, Trash2, Edit3, 
-  AlertCircle, Search, Plus
+  AlertCircle, Search, Plus, Briefcase, BookOpen
 } from 'lucide-react';
 import { 
   SupportStaffRecord, 
@@ -18,6 +18,8 @@ import { ManagedSelectField } from './ManagedSelectField';
 import {
   DEFAULT_NATIONALITIES,
   DEFAULT_SUPPORT_SECTIONS,
+  DEFAULT_SUPPORT_STAGES,
+  DEFAULT_SUPPORT_JOBS,
   DEFAULT_BANKS,
   loadCustomOptions,
   saveCustomOptions,
@@ -51,7 +53,7 @@ const safeSetStorage = (key: string, val: string) => {
   } catch {}
 };
 
-type SupportOptionFieldKey = 'nationality' | 'section' | 'bank';
+type SupportOptionFieldKey = 'nationality' | 'section' | 'stage' | 'job' | 'bank';
 
 export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
   onBack,
@@ -66,6 +68,12 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
   const [sectionOptions, setSectionOptions] = useState<string[]>(() => 
     loadCustomOptions('custom_support_sections_v1', DEFAULT_SUPPORT_SECTIONS)
   );
+  const [stageOptions, setStageOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_support_stages_v1', DEFAULT_SUPPORT_STAGES)
+  );
+  const [jobOptions, setJobOptions] = useState<string[]>(() => 
+    loadCustomOptions('custom_support_jobs_v1', DEFAULT_SUPPORT_JOBS)
+  );
   const [bankOptions, setBankOptions] = useState<string[]>(() => 
     loadCustomOptions('custom_banks_v1', DEFAULT_BANKS)
   );
@@ -74,6 +82,8 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
   useEffect(() => {
     fetchCustomOptionsFromFirestore('custom_nationalities_v1', DEFAULT_NATIONALITIES).then(setNationalityOptions);
     fetchCustomOptionsFromFirestore('custom_support_sections_v1', DEFAULT_SUPPORT_SECTIONS).then(setSectionOptions);
+    fetchCustomOptionsFromFirestore('custom_support_stages_v1', DEFAULT_SUPPORT_STAGES).then(setStageOptions);
+    fetchCustomOptionsFromFirestore('custom_support_jobs_v1', DEFAULT_SUPPORT_JOBS).then(setJobOptions);
     fetchCustomOptionsFromFirestore('custom_banks_v1', DEFAULT_BANKS).then(setBankOptions);
   }, []);
 
@@ -82,6 +92,8 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
   const [name, setName] = useState('');
   const [nationality, setNationality] = useState(nationalityOptions[0] || 'سعودي');
   const [section, setSection] = useState(sectionOptions[0] || 'إدارة المجمع');
+  const [stage, setStage] = useState(stageOptions[0] || 'إدارة المجمع');
+  const [jobTitle, setJobTitle] = useState(jobOptions[0] || 'عامل');
   const [nationalId, setNationalId] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -130,6 +142,14 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
         setSectionOptions(newOpts);
         storageKey = 'custom_support_sections_v1';
         break;
+      case 'stage':
+        setStageOptions(newOpts);
+        storageKey = 'custom_support_stages_v1';
+        break;
+      case 'job':
+        setJobOptions(newOpts);
+        storageKey = 'custom_support_jobs_v1';
+        break;
       case 'bank':
         setBankOptions(newOpts);
         storageKey = 'custom_banks_v1';
@@ -150,6 +170,8 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
     switch (optionManager.fieldKey) {
       case 'nationality': setNationality(newOpt); break;
       case 'section': setSection(newOpt); break;
+      case 'stage': setStage(newOpt); break;
+      case 'job': setJobTitle(newOpt); break;
       case 'bank': setBank(newOpt); break;
     }
   };
@@ -163,6 +185,8 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
     switch (optionManager.fieldKey) {
       case 'nationality': if (nationality === optToDelete) setNationality(fallback); break;
       case 'section': if (section === optToDelete) setSection(fallback); break;
+      case 'stage': if (stage === optToDelete) setStage(fallback); break;
+      case 'job': if (jobTitle === optToDelete) setJobTitle(fallback); break;
       case 'bank': if (bank === optToDelete) setBank(fallback); break;
     }
   };
@@ -175,6 +199,8 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
     switch (optionManager.fieldKey) {
       case 'nationality': if (nationality === oldOpt) setNationality(newOpt); break;
       case 'section': if (section === oldOpt) setSection(newOpt); break;
+      case 'stage': if (stage === oldOpt) setStage(newOpt); break;
+      case 'job': if (jobTitle === oldOpt) setJobTitle(newOpt); break;
       case 'bank': if (bank === oldOpt) setBank(newOpt); break;
     }
   };
@@ -310,6 +336,8 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
     setName(staff.name || '');
     setNationality(staff.nationality || 'سعودي');
     setSection(staff.section || 'إدارة المجمع');
+    setStage(staff.stage || stageOptions[0] || 'إدارة المجمع');
+    setJobTitle(staff.jobTitle || jobOptions[0] || 'عامل');
     setNationalId(staff.nationalId || '');
     setPhone(staff.phone || '');
     setEmail(staff.email || '');
@@ -334,6 +362,8 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
     setName('');
     setNationality(nationalityOptions[0] || 'سعودي');
     setSection(sectionOptions[0] || 'إدارة المجمع');
+    setStage(stageOptions[0] || 'إدارة المجمع');
+    setJobTitle(jobOptions[0] || 'عامل');
     setNationalId('');
     setPhone('');
     setEmail('');
@@ -365,6 +395,8 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
       name: name.trim(),
       nationality: nationality.trim(),
       section: section.trim(),
+      stage: stage.trim(),
+      jobTitle: jobTitle.trim(),
       nationalId: nationalId.trim(),
       phone: phone.trim(),
       email: email.trim(),
@@ -426,6 +458,8 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
       name: name.trim(),
       nationality: nationality.trim(),
       section: section.trim(),
+      stage: stage.trim(),
+      jobTitle: jobTitle.trim(),
       nationalId: nationalId.trim(),
       phone: phone.trim(),
       email: email.trim(),
@@ -775,7 +809,31 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
                 accentColor="teal"
               />
 
-              {/* 5. رقم الهوية */}
+              {/* 5. المرحلة (مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="المرحلة"
+                icon={<BookOpen size={13} className="text-teal-600" />}
+                value={stage}
+                onChange={setStage}
+                options={stageOptions}
+                onManageOptions={() => openOptionManager('stage', 'المرحلة', stageOptions, 'teal')}
+                isAdmin={isAdmin}
+                accentColor="teal"
+              />
+
+              {/* 6. الوظيفة (سائق / عامل / عاملة / فني مع إدارة للأدمن) */}
+              <ManagedSelectField
+                label="الوظيفة"
+                icon={<Briefcase size={13} className="text-teal-600" />}
+                value={jobTitle}
+                onChange={setJobTitle}
+                options={jobOptions}
+                onManageOptions={() => openOptionManager('job', 'الوظيفة', jobOptions, 'teal')}
+                isAdmin={isAdmin}
+                accentColor="teal"
+              />
+
+              {/* 7. رقم الهوية */}
               <div>
                 <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
                   <CreditCard size={13} className="text-teal-600" />

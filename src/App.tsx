@@ -2,6 +2,7 @@ import { getUsers, loginUser, addUser, updateUser, deleteUser, saveExcelToFirest
 import { TeacherFormScreen } from './components/TeacherFormScreen';
 import { AdminFormScreen } from './components/AdminFormScreen';
 import { SupportFormScreen } from './components/SupportFormScreen';
+import { ClassStatsFormScreen } from './components/ClassStatsFormScreen';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import * as XLSX from 'xlsx';
@@ -603,6 +604,7 @@ function App() {
   const [showTeacherForm, setShowTeacherForm] = useState(false);
   const [showAdminForm, setShowAdminForm] = useState(false);
   const [showSupportForm, setShowSupportForm] = useState(false);
+  const [showClassStatsForm, setShowClassStatsForm] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const showToast = (text: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -912,6 +914,13 @@ function App() {
     if (title === 'الخدمات المساندة' || sheetName === 'الخدمات المساندة' || title === 'بيانات الخدمات المساندة') {
       setActiveSheet(null);
       setShowSupportForm(true);
+      return;
+    }
+
+    // إخفاء أي بيانات وجدول لإحصاء الفصول والطلاب وفتح شاشة إحصاء الفصول والطلاب المنبثقة مباشرة
+    if (title === 'إحصاء الفصول والطلاب' || title === 'إحصاء الطلاب' || sheetName === 'إحصاء الطلاب' || title === 'الطلاب والفصول') {
+      setActiveSheet(null);
+      setShowClassStatsForm(true);
       return;
     }
 
@@ -5857,6 +5866,9 @@ function App() {
                               } else if (card.name === 'الخدمات المساندة' || card.sheetName === 'الخدمات المساندة') {
                                 setActiveSheet(null);
                                 setShowSupportForm(true);
+                              } else if (card.name === 'إحصاء الفصول والطلاب' || card.name === 'إحصاء الطلاب' || card.sheetName === 'إحصاء الطلاب' || card.name === 'الطلاب والفصول') {
+                                setActiveSheet(null);
+                                setShowClassStatsForm(true);
                               } else {
                                 loadSheetData(card.name, card.sheetName);
                               }
@@ -5993,6 +6005,16 @@ function App() {
           {showSupportForm && (
             <SupportFormScreen
               onBack={() => setShowSupportForm(false)}
+              academicYear={academicYear}
+              complexName={user?.complex || complexName}
+              isAdmin={user?.role === 'admin'}
+            />
+          )}
+
+          {/* شاشة بطاقة إحصاء الفصول والطلاب (شاشة منبثقة للإدخال والحفظ وتحديث البيانات) */}
+          {showClassStatsForm && (
+            <ClassStatsFormScreen
+              onBack={() => setShowClassStatsForm(false)}
               academicYear={academicYear}
               complexName={user?.complex || complexName}
               isAdmin={user?.role === 'admin'}
