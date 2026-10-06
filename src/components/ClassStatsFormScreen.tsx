@@ -14,6 +14,7 @@ import {
 } from '../lib/api';
 import { OptionManagerModal } from './OptionManagerModal';
 import { ManagedSelectField } from './ManagedSelectField';
+import { arabicIncludes } from '../lib/arabicUtils';
 import {
   DEFAULT_TRACKS,
   DEFAULT_STUDENT_SECTIONS,
@@ -125,15 +126,15 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
   // مدخل نوع الطلاب (بنين أو بنات لغير التمهيدي)
   const [studentType, setStudentType] = useState<'بنين' | 'بنات'>(section === 'بنات' ? 'بنات' : 'بنين');
 
-  // أعداد الطلاب العادية (لغير التمهيدي)
-  const [saudiCount, setSaudiCount] = useState<string>('0');
-  const [nonSaudiCount, setNonSaudiCount] = useState<string>('0');
+  // أعداد الطلاب العادية (لغير التمهيدي) - افتراضياً حقول فارغة بدون أصفار
+  const [saudiCount, setSaudiCount] = useState<string>('');
+  const [nonSaudiCount, setNonSaudiCount] = useState<string>('');
 
-  // أعداد التمهيدي المنفصلة (بنين وبنات وسعودي وغير سعودي)
-  const [kgBoysSaudi, setKgBoysSaudi] = useState<string>('0');
-  const [kgBoysNonSaudi, setKgBoysNonSaudi] = useState<string>('0');
-  const [kgGirlsSaudi, setKgGirlsSaudi] = useState<string>('0');
-  const [kgGirlsNonSaudi, setKgGirlsNonSaudi] = useState<string>('0');
+  // أعداد التمهيدي المنفصلة (بنين وبنات وسعودي وغير سعودي) - افتراضياً حقول فارغة بدون أصفار
+  const [kgBoysSaudi, setKgBoysSaudi] = useState<string>('');
+  const [kgBoysNonSaudi, setKgBoysNonSaudi] = useState<string>('');
+  const [kgGirlsSaudi, setKgGirlsSaudi] = useState<string>('');
+  const [kgGirlsNonSaudi, setKgGirlsNonSaudi] = useState<string>('');
 
   // تحديث المرحلة تلقائياً إذا تغير القسم إلى بنين وكان تمهيدي
   const handleSectionChange = (newSec: string) => {
@@ -348,11 +349,17 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
         });
 
         const merged = Array.from(map.values());
-        setAllRecords(merged);
+        const filtered = (complexName === 'كل المجمعات')
+          ? merged
+          : merged.filter(r => r.complexName === complexName || (!r.complexName && complexName === 'دار القلم'));
+        setAllRecords(filtered);
         safeSetStorage(STORAGE_KEY, JSON.stringify(merged));
       } catch (err) {
         console.warn('Firestore fallback to local storage for class stats:', err);
-        setAllRecords(localList);
+        const filteredLocal = (complexName === 'كل المجمعات')
+          ? localList
+          : localList.filter(r => r.complexName === complexName || (!r.complexName && complexName === 'دار القلم'));
+        setAllRecords(filteredLocal);
       }
     } catch (e) {
       console.error('Error fetching registered class stats:', e);
@@ -363,16 +370,16 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
     fetchAllRecords();
   }, []);
 
-  // نتائج البحث
+  // نتائج البحث مع معالجة كافة الفروق الإملائية
   const searchResults = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = searchQuery.trim();
     if (!q) return [];
     return allRecords.filter(r => 
-      (r.grade || '').toLowerCase().includes(q) || 
-      (r.stage || '').toLowerCase().includes(q) || 
-      (r.section || '').toLowerCase().includes(q) || 
-      (r.track || '').toLowerCase().includes(q) ||
-      (r.secondaryTrack || '').toLowerCase().includes(q)
+      arabicIncludes(r.grade, q) || 
+      arabicIncludes(r.stage, q) || 
+      arabicIncludes(r.section, q) || 
+      arabicIncludes(r.track, q) ||
+      arabicIncludes(r.secondaryTrack, q)
     ).slice(0, 15);
   }, [searchQuery, allRecords]);
 
@@ -458,19 +465,19 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
     setStudentType(record.studentType || (record.section === 'بنات' ? 'بنات' : 'بنين'));
 
     if (record.stage === 'تمهيدي') {
-      setKgBoysSaudi(String(record.kgBoysSaudi ?? 0));
-      setKgBoysNonSaudi(String(record.kgBoysNonSaudi ?? 0));
-      setKgGirlsSaudi(String(record.kgGirlsSaudi ?? 0));
-      setKgGirlsNonSaudi(String(record.kgGirlsNonSaudi ?? 0));
-      setSaudiCount('0');
-      setNonSaudiCount('0');
+      setKgBoysSaudi(record.kgBoysSaudi ? String(record.kgBoysSaudi) : '');
+      setKgBoysNonSaudi(record.kgBoysNonSaudi ? String(record.kgBoysNonSaudi) : '');
+      setKgGirlsSaudi(record.kgGirlsSaudi ? String(record.kgGirlsSaudi) : '');
+      setKgGirlsNonSaudi(record.kgGirlsNonSaudi ? String(record.kgGirlsNonSaudi) : '');
+      setSaudiCount('');
+      setNonSaudiCount('');
     } else {
-      setSaudiCount(String(record.saudiCount ?? 0));
-      setNonSaudiCount(String(record.nonSaudiCount ?? 0));
-      setKgBoysSaudi('0');
-      setKgBoysNonSaudi('0');
-      setKgGirlsSaudi('0');
-      setKgGirlsNonSaudi('0');
+      setSaudiCount(record.saudiCount ? String(record.saudiCount) : '');
+      setNonSaudiCount(record.nonSaudiCount ? String(record.nonSaudiCount) : '');
+      setKgBoysSaudi('');
+      setKgBoysNonSaudi('');
+      setKgGirlsSaudi('');
+      setKgGirlsNonSaudi('');
     }
 
     setIsSearchOpen(false);
@@ -483,7 +490,7 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
     }
   };
 
-  // تفريغ النموذج
+  // تفريغ النموذج وجعل حقول الأعداد فارغة تماماً
   const handleResetForm = () => {
     setSelectedRecord(null);
     setSearchQuery('');
@@ -496,12 +503,12 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
     setClassCount('1');
     setSecondaryTrack(secondaryTrackOptions[0] || 'مسار عام');
     setStudentType(sectionOptions[0] === 'بنات' ? 'بنات' : 'بنين');
-    setSaudiCount('0');
-    setNonSaudiCount('0');
-    setKgBoysSaudi('0');
-    setKgBoysNonSaudi('0');
-    setKgGirlsSaudi('0');
-    setKgGirlsNonSaudi('0');
+    setSaudiCount('');
+    setNonSaudiCount('');
+    setKgBoysSaudi('');
+    setKgBoysNonSaudi('');
+    setKgGirlsSaudi('');
+    setKgGirlsNonSaudi('');
     setErrorMessage(null);
   };
 
@@ -570,6 +577,14 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
     const updatedList = [fullSaved, ...allRecords];
     setAllRecords(updatedList);
     safeSetStorage(STORAGE_KEY, JSON.stringify(updatedList));
+
+    // تفريغ حقول الأعداد لتكون جاهزة وفارغة لإدخال الصف التالي
+    setSaudiCount('');
+    setNonSaudiCount('');
+    setKgBoysSaudi('');
+    setKgBoysNonSaudi('');
+    setKgGirlsSaudi('');
+    setKgGirlsNonSaudi('');
 
     setIsSaving(false);
     setSuccessMessage(`تم حفظ إحصاء (${fullSaved.grade} - ${fullSaved.stage}) بنجاح! الإجمالي: ${fullSaved.totalStudents} طالباً.`);
@@ -647,6 +662,9 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
 
     setAllRecords(updatedList);
     safeSetStorage(STORAGE_KEY, JSON.stringify(updatedList));
+
+    // تفريغ الحقول بعد التحديث
+    handleResetForm();
 
     setIsSaving(false);
     setSelectedRecord(null);
@@ -753,15 +771,6 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={handleResetForm}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-800 hover:bg-slate-100 text-xs font-bold transition-all cursor-pointer"
-              title="تفريغ الحقول والبدء من جديد"
-            >
-              <RefreshCw size={13} />
-              <span className="hidden sm:inline">جديد</span>
-            </button>
             <button
               type="button"
               onClick={onBack}
@@ -1090,7 +1099,7 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
                               value={kgBoysSaudi}
                               onKeyDown={handleNumericKeyDown}
                               onChange={(e) => setKgBoysSaudi(toOnlyDigits(e.target.value))}
-                              placeholder="0"
+                              placeholder="اكتب العدد..."
                               className="w-full py-1.5 px-3 bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 text-center font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
@@ -1105,7 +1114,7 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
                               value={kgBoysNonSaudi}
                               onKeyDown={handleNumericKeyDown}
                               onChange={(e) => setKgBoysNonSaudi(toOnlyDigits(e.target.value))}
-                              placeholder="0"
+                              placeholder="اكتب العدد..."
                               className="w-full py-1.5 px-3 bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 text-center font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
@@ -1135,7 +1144,7 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
                               value={kgGirlsSaudi}
                               onKeyDown={handleNumericKeyDown}
                               onChange={(e) => setKgGirlsSaudi(toOnlyDigits(e.target.value))}
-                              placeholder="0"
+                              placeholder="اكتب العدد..."
                               className="w-full py-1.5 px-3 bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 text-center font-mono focus:outline-none focus:ring-2 focus:ring-pink-500"
                             />
                           </div>
@@ -1150,7 +1159,7 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
                               value={kgGirlsNonSaudi}
                               onKeyDown={handleNumericKeyDown}
                               onChange={(e) => setKgGirlsNonSaudi(toOnlyDigits(e.target.value))}
-                              placeholder="0"
+                              placeholder="اكتب العدد..."
                               className="w-full py-1.5 px-3 bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 text-center font-mono focus:outline-none focus:ring-2 focus:ring-pink-500"
                             />
                           </div>

@@ -3,7 +3,7 @@ import {
   Building2, Save, User, Hash, Globe, Users, 
   CreditCard, Phone, Award, BookOpen, FileCheck, 
   Mail, Landmark, Calendar, Check, Copy, X, Trash2, Edit3, 
-  AlertCircle, Search, Briefcase, Plus, Compass
+  AlertCircle, Search, Briefcase, Plus, Compass, ArrowLeftRight
 } from 'lucide-react';
 import { 
   AdminRecord, 
@@ -15,6 +15,8 @@ import {
 import { DatePickerField } from './DatePickerField';
 import { OptionManagerModal } from './OptionManagerModal';
 import { ManagedSelectField } from './ManagedSelectField';
+import { TransferModal } from './TransferModal';
+import { arabicIncludes } from '../lib/arabicUtils';
 import {
   DEFAULT_NATIONALITIES,
   DEFAULT_ADMIN_SECTIONS,
@@ -276,6 +278,9 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
   // حالة تأكيد الحذف
   const [adminToDelete, setAdminToDelete] = useState<LoadedAdmin | null>(null);
 
+  // حالة طلب نقل الإداري لمجمع آخر
+  const [employeeToTransfer, setEmployeeToTransfer] = useState<LoadedAdmin | null>(null);
+
   // حالات مساعدة
   const [allAdmins, setAllAdmins] = useState<LoadedAdmin[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -366,11 +371,17 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
         });
 
         const merged = Array.from(map.values());
-        setAllAdmins(merged);
+        const filtered = (complexName === 'كل المجمعات')
+          ? merged
+          : merged.filter(a => a.complexName === complexName || (!a.complexName && complexName === 'دار القلم'));
+        setAllAdmins(filtered);
         safeSetStorage(STORAGE_KEY, JSON.stringify(merged));
       } catch (err) {
         console.warn('Firestore fallback to local storage for admins:', err);
-        setAllAdmins(localList);
+        const filteredLocal = (complexName === 'كل المجمعات')
+          ? localList
+          : localList.filter(a => a.complexName === complexName || (!a.complexName && complexName === 'دار القلم'));
+        setAllAdmins(filteredLocal);
       }
     } catch (e) {
       console.error('Error fetching registered admins:', e);
@@ -381,13 +392,18 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
     fetchAllAdmins();
   }, []);
 
-  // نتائج البحث المفلترة بالاسم أو الرقم الوظيفي حصراً في الكادر الإداري
+  // نتائج البحث المفلترة بالاسم أو الرقم الوظيفي حصراً في الكادر الإداري مع مراعاة كافة الفروق الإملائية
   const searchResults = React.useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = searchQuery.trim();
     if (!q) return [];
     return allAdmins.filter(a => 
-      a.name.toLowerCase().includes(q) || 
-      a.jobNum.toLowerCase().includes(q)
+      arabicIncludes(a.name, q) || 
+      arabicIncludes(a.jobNum, q) ||
+      arabicIncludes(a.nationalId, q) ||
+      arabicIncludes(a.jobTitle, q) ||
+      arabicIncludes(a.track, q) ||
+      arabicIncludes(a.stage, q) ||
+      arabicIncludes(a.section, q)
     ).slice(0, 15);
   }, [searchQuery, allAdmins]);
 
@@ -461,6 +477,8 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
     const fullIban = ibanDigits.trim() ? `SA${ibanDigits.trim()}` : 'SA';
 
     const adminData: AdminRecord = {
+      complexName,
+      academicYear,
       jobNum: jobNum.trim(),
       name: name.trim(),
       nationality: nationality.trim(),
@@ -528,6 +546,8 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
     const fullIban = ibanDigits.trim() ? `SA${ibanDigits.trim()}` : 'SA';
 
     const updatedData: AdminRecord = {
+      complexName: selectedAdmin.complexName || complexName,
+      academicYear: selectedAdmin.academicYear || academicYear,
       jobNum: jobNum.trim(),
       name: name.trim(),
       nationality: nationality.trim(),
@@ -768,7 +788,7 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
                           {admin.name}
                         </div>
 
-                        {/* وتحته تعديل أو حذف */}
+                        {/* وتحته تعديل أو حذف أو نقل */}
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
@@ -777,6 +797,16 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
                           >
                             <Edit3 size={12} />
                             <span>تعديل</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setEmployeeToTransfer(admin)}
+                            className="flex items-center gap-1 px-3 py-1 bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-800 border border-amber-300 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                            title="نقل الموظف الإداري إلى مجمع آخر"
+                          >
+                            <ArrowLeftRight size={12} />
+                            <span>نقل</span>
                           </button>
 
                           <button
@@ -1168,6 +1198,19 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
         </form>
 
       </div>
+
+      {/* نافذة طلب نقل الإداري لمجمع آخر */}
+      <TransferModal
+        isOpen={!!employeeToTransfer}
+        onClose={() => setEmployeeToTransfer(null)}
+        employee={employeeToTransfer}
+        employeeType="admin"
+        currentComplex={complexName}
+        onTransferSuccess={(targetComplex, empName) => {
+          setSuccessMessage(`تم إرسال طلب نقل الموظف الإداري (${empName}) إلى (${targetComplex}) بنجاح.`);
+          setTimeout(() => setSuccessMessage(null), 5000);
+        }}
+      />
 
       {/* نافذة إدارة الخيارات للأدمن */}
       <OptionManagerModal

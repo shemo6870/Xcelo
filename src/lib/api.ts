@@ -96,6 +96,8 @@ export const loadExcelFromFirestore = async () => {
 // Teacher Records Management
 export interface TeacherRecord {
   id?: string;
+  complexName?: string;
+  academicYear?: string;
   jobNum: string;
   name: string;
   nationality: string;
@@ -146,6 +148,8 @@ export const updateTeacherInFirestore = async (id: string, teacher: Partial<Teac
 // Administrative Staff Records Management
 export interface AdminRecord {
   id?: string;
+  complexName?: string;
+  academicYear?: string;
   jobNum: string;
   name: string;
   nationality: string;
@@ -193,6 +197,9 @@ export const updateAdminInFirestore = async (id: string, admin: Partial<AdminRec
 // Support Staff Records Management (الخدمات المساندة)
 export interface SupportStaffRecord {
   id?: string;
+  complexName?: string;
+  academicYear?: string;
+  sponsorshipType?: 'على كفالة الشركة' | 'شركة مشغلة' | string;
   jobNum: string;
   name: string;
   nationality: string;
@@ -283,6 +290,129 @@ export const updateClassStatsInFirestore = async (id: string, stats: Partial<Cla
     ...stats,
     updatedAt: new Date().toISOString()
   });
+  return { success: true };
+};
+
+// ==========================================
+// إدارة طلبات نقل الموظفين بين المجمعات
+// ==========================================
+export interface TransferRequestRecord {
+  id?: string;
+  employeeId?: string;
+  employeeType: 'teacher' | 'admin' | 'support';
+  employeeName: string;
+  jobNum?: string;
+  jobTitle?: string;
+  nationalId?: string;
+  fromComplex: string;
+  toComplex: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestDate: string;
+  notes?: string;
+  fullData?: any;
+  createdAt?: string;
+  resolvedAt?: string;
+}
+
+// أداة تنقية الكائنات لإزالة أي قيم undefined قبل إرسالها لفايربيس
+export const sanitizeForFirestore = <T extends Record<string, any>>(obj: T): any => {
+  if (!obj || typeof obj !== 'object') return obj;
+  const clean: Record<string, any> = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val === undefined) {
+      continue;
+    } else if (val !== null && typeof val === 'object' && !Array.isArray(val) && !(val instanceof Date)) {
+      clean[key] = sanitizeForFirestore(val);
+    } else if (Array.isArray(val)) {
+      clean[key] = val.filter(item => item !== undefined).map(item => 
+        (item !== null && typeof item === 'object') ? sanitizeForFirestore(item) : item
+      );
+    } else {
+      clean[key] = val;
+    }
+  }
+  return clean;
+};
+
+const transferRequestsCol = collection(db, 'transfer_requests');
+
+export const createTransferRequest = async (req: TransferRequestRecord): Promise<any> => {
+  const requestData = sanitizeForFirestore({
+    employeeId: req.employeeId || '',
+    employeeType: req.employeeType,
+    employeeName: req.employeeName,
+    jobNum: req.jobNum || '',
+    jobTitle: req.jobTitle || '',
+    nationalId: req.nationalId || '',
+    fromComplex: req.fromComplex,
+    toComplex: req.toComplex,
+    status: 'pending',
+    requestDate: req.requestDate || new Date().toISOString(),
+    notes: req.notes || '',
+    createdAt: new Date().toISOString()
+  });
+
+  const docRef = await addDoc(transferRequestsCol, requestData);
+  return { success: true, id: docRef.id };
+};
+
+export const getTransferRequestsFromFirestore = async (): Promise<TransferRequestRecord[]> => {
+  const snapshot = await getDocs(transferRequestsCol);
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as TransferRequestRecord));
+};
+
+export const updateTransferRequestStatus = async (
+  requestId: string,
+  status: 'approved' | 'rejected',
+  reqData?: TransferRequestRecord
+): Promise<any> => {
+  try {
+    const docRef = doc(db, 'transfer_requests', requestId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      await updateDoc(docRef, {
+        status,
+        resolvedAt: new Date().toISOString()
+      });
+    } else {
+      // إذا لم يكن المستند موجوداً في فايربيس (مثلاً تم إنشاؤه محلياً في وضع عدم الاتصال)، نقوم بحفظه بـ setDoc
+      await setDoc(docRef, sanitizeForFirestore({
+        ...(reqData || {}),
+        status,
+        resolvedAt: new Date().toISOString()
+      }), { merge: true });
+    }
+  } catch (err) {
+    console.warn('Firestore transfer request update handled with fallback:', err);
+  }
+
+  // إذا تمت الموافقة، نقوم بنقل الموظف في جدول/مجموعة الكادر التابع له إلى المجمع المستهدف
+  if (status === 'approved' && reqData) {
+    const targetComplex = reqData.toComplex;
+    const empId = reqData.employeeId;
+    if (empId) {
+      if (reqData.employeeType === 'teacher') {
+        try {
+          await updateDoc(doc(db, 'teachers', empId), { complexName: targetComplex });
+        } catch (e) {
+          console.warn('Could not update teacher complex in firestore:', e);
+        }
+      } else if (reqData.employeeType === 'admin') {
+        try {
+          await updateDoc(doc(db, 'admin_staff', empId), { complexName: targetComplex });
+        } catch (e) {
+          console.warn('Could not update admin complex in firestore:', e);
+        }
+      } else if (reqData.employeeType === 'support') {
+        try {
+          await updateDoc(doc(db, 'support_staff', empId), { complexName: targetComplex });
+        } catch (e) {
+          console.warn('Could not update support staff complex in firestore:', e);
+        }
+      }
+    }
+  }
+
   return { success: true };
 };
 

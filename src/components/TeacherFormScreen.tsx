@@ -3,7 +3,7 @@ import {
   GraduationCap, Save, User, Hash, Globe, Users, 
   CreditCard, Phone, Award, BookOpen, FileCheck, Sparkles, 
   Mail, Landmark, Calendar, Check, Copy, X, Trash2, Edit3, 
-  AlertCircle, Search, Briefcase, Plus, Compass
+  AlertCircle, Search, Briefcase, Plus, Compass, ArrowLeftRight
 } from 'lucide-react';
 import { 
   TeacherRecord, 
@@ -15,6 +15,8 @@ import {
 import { DatePickerField } from './DatePickerField';
 import { OptionManagerModal } from './OptionManagerModal';
 import { ManagedSelectField } from './ManagedSelectField';
+import { TransferModal } from './TransferModal';
+import { arabicIncludes } from '../lib/arabicUtils';
 import {
   DEFAULT_NATIONALITIES,
   DEFAULT_TEACHER_SECTIONS,
@@ -318,6 +320,9 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
   // حالة تأكيد الحذف كنافذة منبثقة آمنة داخلية
   const [teacherToDelete, setTeacherToDelete] = useState<LoadedTeacher | null>(null);
 
+  // حالة طلب نقل المعلم لمجمع آخر
+  const [employeeToTransfer, setEmployeeToTransfer] = useState<LoadedTeacher | null>(null);
+
   // حالات مساعدة
   const [allTeachers, setAllTeachers] = useState<LoadedTeacher[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -408,11 +413,17 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
         });
 
         const merged = Array.from(map.values());
-        setAllTeachers(merged);
+        const filtered = (complexName === 'كل المجمعات')
+          ? merged
+          : merged.filter(t => t.complexName === complexName || (!t.complexName && complexName === 'دار القلم'));
+        setAllTeachers(filtered);
         safeSetStorage(STORAGE_KEY, JSON.stringify(merged));
       } catch (err) {
         console.warn('Firestore fallback to local storage:', err);
-        setAllTeachers(localList);
+        const filteredLocal = (complexName === 'كل المجمعات')
+          ? localList
+          : localList.filter(t => t.complexName === complexName || (!t.complexName && complexName === 'دار القلم'));
+        setAllTeachers(filteredLocal);
       }
     } catch (e) {
       console.error('Error fetching registered teachers:', e);
@@ -423,13 +434,19 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
     fetchAllTeachers();
   }, []);
 
-  // نتائج البحث المفلترة بالاسم أو الرقم الوظيفي
+  // نتائج البحث المفلترة بالاسم أو الرقم الوظيفي مع مراعاة كافة الفروق الإملائية
   const searchResults = React.useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = searchQuery.trim();
     if (!q) return [];
     return allTeachers.filter(t => 
-      t.name.toLowerCase().includes(q) || 
-      t.jobNum.toLowerCase().includes(q)
+      arabicIncludes(t.name, q) || 
+      arabicIncludes(t.jobNum, q) ||
+      arabicIncludes(t.nationalId, q) ||
+      arabicIncludes(t.subject, q) ||
+      arabicIncludes(t.specialization, q) ||
+      arabicIncludes(t.track, q) ||
+      arabicIncludes(t.stage, q) ||
+      arabicIncludes(t.jobTitle, q)
     ).slice(0, 15);
   }, [searchQuery, allTeachers]);
 
@@ -512,6 +529,8 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
     const fullIban = ibanDigits.trim() ? `SA${ibanDigits.trim()}` : 'SA';
 
     const teacherData: TeacherRecord = {
+      complexName,
+      academicYear,
       jobNum: jobNum.trim(),
       name: name.trim(),
       nationality: nationality.trim(),
@@ -582,6 +601,8 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
     const fullIban = ibanDigits.trim() ? `SA${ibanDigits.trim()}` : 'SA';
 
     const updatedData: TeacherRecord = {
+      complexName: selectedTeacher.complexName || complexName,
+      academicYear: selectedTeacher.academicYear || academicYear,
       jobNum: jobNum.trim(),
       name: name.trim(),
       nationality: nationality.trim(),
@@ -825,7 +846,7 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
                           {teacher.name}
                         </div>
 
-                        {/* وتحته تعديل أو حذف */}
+                        {/* وتحته تعديل أو حذف أو نقل */}
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
@@ -834,6 +855,16 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
                           >
                             <Edit3 size={12} />
                             <span>تعديل</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setEmployeeToTransfer(teacher)}
+                            className="flex items-center gap-1 px-3 py-1 bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-800 border border-amber-300 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                            title="نقل المعلم إلى مجمع آخر"
+                          >
+                            <ArrowLeftRight size={12} />
+                            <span>نقل</span>
                           </button>
 
                           <button
@@ -1262,6 +1293,19 @@ export const TeacherFormScreen: React.FC<TeacherFormScreenProps> = ({
         </form>
 
       </div>
+
+      {/* نافذة طلب نقل المعلم لمجمع آخر */}
+      <TransferModal
+        isOpen={!!employeeToTransfer}
+        onClose={() => setEmployeeToTransfer(null)}
+        employee={employeeToTransfer}
+        employeeType="teacher"
+        currentComplex={complexName}
+        onTransferSuccess={(targetComplex, empName) => {
+          setSuccessMessage(`تم إرسال طلب نقل المعلم (${empName}) إلى (${targetComplex}) بنجاح.`);
+          setTimeout(() => setSuccessMessage(null), 5000);
+        }}
+      />
 
       {/* نافذة إدارة الخيارات للأدمن */}
       <OptionManagerModal

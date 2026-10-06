@@ -3,7 +3,7 @@ import {
   HeartHandshake, Save, User, Hash, Globe, Users, 
   CreditCard, Phone, 
   Mail, Landmark, Calendar, Check, Copy, X, Trash2, Edit3, 
-  AlertCircle, Search, Plus, Briefcase, BookOpen
+  AlertCircle, Search, Plus, Briefcase, BookOpen, ArrowLeftRight, Building
 } from 'lucide-react';
 import { 
   SupportStaffRecord, 
@@ -15,6 +15,8 @@ import {
 import { DatePickerField } from './DatePickerField';
 import { OptionManagerModal } from './OptionManagerModal';
 import { ManagedSelectField } from './ManagedSelectField';
+import { TransferModal } from './TransferModal';
+import { arabicIncludes } from '../lib/arabicUtils';
 import {
   DEFAULT_NATIONALITIES,
   DEFAULT_SUPPORT_SECTIONS,
@@ -88,6 +90,7 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
   }, []);
 
   // الحقول الخاصة بالخدمات المساندة
+  const [sponsorshipType, setSponsorshipType] = useState<string>('على كفالة الشركة');
   const [jobNum, setJobNum] = useState('');
   const [name, setName] = useState('');
   const [nationality, setNationality] = useState(nationalityOptions[0] || 'سعودي');
@@ -214,6 +217,9 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
   // حالة تأكيد الحذف
   const [staffToDelete, setStaffToDelete] = useState<LoadedSupportStaff | null>(null);
 
+  // حالة طلب نقل موظف الخدمات المساندة لمجمع آخر
+  const [employeeToTransfer, setEmployeeToTransfer] = useState<LoadedSupportStaff | null>(null);
+
   // حالات مساعدة
   const [allStaff, setAllStaff] = useState<LoadedSupportStaff[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -294,21 +300,31 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
         const map = new Map<string, LoadedSupportStaff>();
         
         localList.forEach(s => {
-          if (s && s.jobNum) map.set(s.jobNum, s);
+          if (s) {
+            const key = s.id || (s.jobNum ? s.jobNum : `${s.name}_${s.nationalId || ''}`);
+            map.set(key, s);
+          }
         });
 
         fsStaff.forEach(s => {
-          if (s && s.jobNum) {
-            map.set(s.jobNum, { ...s, source: 'firestore' });
+          if (s) {
+            const key = s.id || (s.jobNum ? s.jobNum : `${s.name}_${s.nationalId || ''}`);
+            map.set(key, { ...s, source: 'firestore' });
           }
         });
 
         const merged = Array.from(map.values());
-        setAllStaff(merged);
+        const filtered = (complexName === 'كل المجمعات')
+          ? merged
+          : merged.filter(s => s.complexName === complexName || (!s.complexName && complexName === 'دار القلم'));
+        setAllStaff(filtered);
         safeSetStorage(STORAGE_KEY, JSON.stringify(merged));
       } catch (err) {
         console.warn('Firestore fallback to local storage for support staff:', err);
-        setAllStaff(localList);
+        const filteredLocal = (complexName === 'كل المجمعات')
+          ? localList
+          : localList.filter(s => s.complexName === complexName || (!s.complexName && complexName === 'دار القلم'));
+        setAllStaff(filteredLocal);
       }
     } catch (e) {
       console.error('Error fetching registered support staff:', e);
@@ -319,19 +335,25 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
     fetchAllStaff();
   }, []);
 
-  // نتائج البحث المفلترة بالاسم أو الرقم الوظيفي حصراً في الخدمات المساندة
+  // نتائج البحث المفلترة بالاسم أو الرقم الوظيفي حصراً في الخدمات المساندة مع مراعاة كافة الفروق الإملائية
   const searchResults = React.useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = searchQuery.trim();
     if (!q) return [];
     return allStaff.filter(s => 
-      s.name.toLowerCase().includes(q) || 
-      s.jobNum.toLowerCase().includes(q)
+      arabicIncludes(s.name, q) || 
+      arabicIncludes(s.jobNum, q) ||
+      arabicIncludes(s.nationalId, q) ||
+      arabicIncludes(s.jobTitle, q) ||
+      arabicIncludes(s.sponsorshipType, q) ||
+      arabicIncludes(s.stage, q) ||
+      arabicIncludes(s.section, q)
     ).slice(0, 15);
   }, [searchQuery, allStaff]);
 
   // تعبئة النموذج ببيانات موظف الخدمات المساندة المحدد للتعديل
   const populateStaffData = (staff: LoadedSupportStaff) => {
     setSelectedStaff(staff);
+    setSponsorshipType(staff.sponsorshipType || 'على كفالة الشركة');
     setJobNum(staff.jobNum || '');
     setName(staff.name || '');
     setNationality(staff.nationality || 'سعودي');
@@ -358,6 +380,7 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
     setSelectedStaff(null);
     setSearchQuery('');
     setIsSearchOpen(false);
+    setSponsorshipType('على كفالة الشركة');
     setJobNum('');
     setName('');
     setNationality(nationalityOptions[0] || 'سعودي');
@@ -379,7 +402,8 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
     setSuccessMessage(null);
     setErrorMessage(null);
 
-    if (!jobNum.trim()) {
+    // إذا كانت كفالة الشركة، يلزم إدخال الرقم الوظيفي، أما إن كانت شركة مشغلة فيختفي ولا يلزم
+    if (sponsorshipType === 'على كفالة الشركة' && !jobNum.trim()) {
       setErrorMessage('يرجى إدخال الرقم الوظيفي للموظف');
       return;
     }
@@ -391,7 +415,10 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
     const fullIban = ibanDigits.trim() ? `SA${ibanDigits.trim()}` : 'SA';
 
     const staffData: SupportStaffRecord = {
-      jobNum: jobNum.trim(),
+      complexName,
+      academicYear,
+      sponsorshipType,
+      jobNum: sponsorshipType === 'شركة مشغلة' ? (jobNum.trim() || '') : jobNum.trim(),
       name: name.trim(),
       nationality: nationality.trim(),
       section: section.trim(),
@@ -425,7 +452,7 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
       source: 'firestore' 
     };
 
-    const updatedList = [newStaff, ...allStaff.filter(s => s.jobNum !== newStaff.jobNum)];
+    const updatedList = [newStaff, ...allStaff.filter(s => s.id !== newStaff.id && (s.jobNum ? s.jobNum !== newStaff.jobNum : s.name !== newStaff.name))];
     setAllStaff(updatedList);
     safeSetStorage(STORAGE_KEY, JSON.stringify(updatedList));
 
@@ -442,7 +469,7 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
     setSuccessMessage(null);
     setErrorMessage(null);
 
-    if (!jobNum.trim()) {
+    if (sponsorshipType === 'على كفالة الشركة' && !jobNum.trim()) {
       setErrorMessage('يرجى إدخال الرقم الوظيفي للموظف');
       return;
     }
@@ -454,7 +481,10 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
     const fullIban = ibanDigits.trim() ? `SA${ibanDigits.trim()}` : 'SA';
 
     const updatedData: SupportStaffRecord = {
-      jobNum: jobNum.trim(),
+      complexName: selectedStaff.complexName || complexName,
+      academicYear: selectedStaff.academicYear || academicYear,
+      sponsorshipType,
+      jobNum: sponsorshipType === 'شركة مشغلة' ? (jobNum.trim() || '') : jobNum.trim(),
       name: name.trim(),
       nationality: nationality.trim(),
       section: section.trim(),
@@ -690,7 +720,7 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
                           {staff.name}
                         </div>
 
-                        {/* وتحته تعديل أو حذف */}
+                        {/* وتحته تعديل أو حذف أو نقل */}
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
@@ -699,6 +729,16 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
                           >
                             <Edit3 size={12} />
                             <span>تعديل</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setEmployeeToTransfer(staff)}
+                            className="flex items-center gap-1 px-3 py-1 bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-800 border border-amber-300 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                            title="نقل موظف الخدمات المساندة إلى مجمع آخر"
+                          >
+                            <ArrowLeftRight size={12} />
+                            <span>نقل</span>
                           </button>
 
                           <button
@@ -746,27 +786,65 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
               </div>
             )}
 
-            {/* شبكة المدخلات: 10 حقول بعد استبعاد المؤهل والتخصص ومادة التدريس ونصاب المعلم والرخصة المهنية وكلاسيرا */}
+            {/* شبكة المدخلات */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2 sm:gap-y-2.5">
               
-              {/* 1. الرقم الوظيفي */}
+              {/* مدخل التبعية والكفالة: قبل الرقم الوظيفي مباشرة */}
               <div>
                 <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
-                  <Hash size={13} className="text-teal-600" />
-                  <span>الرقم الوظيفي:</span>
+                  <Building size={13} className="text-teal-600" />
+                  <span>التبعية / الكفالة:</span>
                   <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  required
-                  value={jobNum}
-                  onKeyDown={handleNumericKeyDown}
-                  onChange={(e) => setJobNum(toOnlyDigits(e.target.value))}
-                  className="w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-mono"
-                  dir="ltr"
-                />
+                <div className="grid grid-cols-2 gap-1.5 p-0.5 bg-slate-100 rounded-lg border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setSponsorshipType('على كفالة الشركة')}
+                    className={`py-1.5 px-2 text-xs font-bold rounded-md transition-all cursor-pointer text-center ${
+                      sponsorshipType === 'على كفالة الشركة'
+                        ? 'bg-teal-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                    }`}
+                  >
+                    على كفالة الشركة
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSponsorshipType('شركة مشغلة');
+                      setJobNum(''); // تفريغ الرقم الوظيفي تلقائياً عند اختيار شركة مشغلة
+                    }}
+                    className={`py-1.5 px-2 text-xs font-bold rounded-md transition-all cursor-pointer text-center ${
+                      sponsorshipType === 'شركة مشغلة'
+                        ? 'bg-teal-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                    }`}
+                  >
+                    شركة مشغلة
+                  </button>
+                </div>
               </div>
+
+              {/* 1. الرقم الوظيفي - يختفي تلقائياً إذا تم اختيار شركة مشغلة */}
+              {sponsorshipType === 'على كفالة الشركة' && (
+                <div>
+                  <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
+                    <Hash size={13} className="text-teal-600" />
+                    <span>الرقم الوظيفي:</span>
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    required
+                    value={jobNum}
+                    onKeyDown={handleNumericKeyDown}
+                    onChange={(e) => setJobNum(toOnlyDigits(e.target.value))}
+                    className="w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-mono"
+                    dir="ltr"
+                  />
+                </div>
+              )}
 
               {/* 2. اسم الموظف */}
               <div>
@@ -1042,6 +1120,19 @@ export const SupportFormScreen: React.FC<SupportFormScreenProps> = ({
         </form>
 
       </div>
+
+      {/* نافذة طلب نقل موظف الخدمات المساندة لمجمع آخر */}
+      <TransferModal
+        isOpen={!!employeeToTransfer}
+        onClose={() => setEmployeeToTransfer(null)}
+        employee={employeeToTransfer}
+        employeeType="support"
+        currentComplex={complexName}
+        onTransferSuccess={(targetComplex, empName) => {
+          setSuccessMessage(`تم إرسال طلب نقل موظف الخدمات المساندة (${empName}) إلى (${targetComplex}) بنجاح.`);
+          setTimeout(() => setSuccessMessage(null), 5000);
+        }}
+      />
 
       {/* نافذة إدارة الخيارات للأدمن */}
       <OptionManagerModal

@@ -1,8 +1,13 @@
-import { getUsers, loginUser, addUser, updateUser, deleteUser, saveExcelToFirestore, loadExcelFromFirestore } from './lib/api';
+import { 
+  getUsers, loginUser, addUser, updateUser, deleteUser, saveExcelToFirestore, loadExcelFromFirestore,
+  TransferRequestRecord, getTransferRequestsFromFirestore, updateTransferRequestStatus 
+} from './lib/api';
 import { TeacherFormScreen } from './components/TeacherFormScreen';
 import { AdminFormScreen } from './components/AdminFormScreen';
 import { SupportFormScreen } from './components/SupportFormScreen';
 import { ClassStatsFormScreen } from './components/ClassStatsFormScreen';
+import { PendingTransfersModal } from './components/PendingTransfersModal';
+import { arabicIncludes } from './lib/arabicUtils';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import * as XLSX from 'xlsx';
@@ -14,7 +19,7 @@ import {
   ChevronDown, Undo2, PaintBucket, Type, Combine, X, Eraser, Grid3X3, Columns, Rows, Image as ImageIcon,
   Shapes, Circle, Square, Triangle, ArrowLeft, ArrowUp, ArrowDown, Star,
   Bold, AlignLeft, AlignCenter, AlignRight, Plus, Minus, ZoomIn, ZoomOut, ChevronUp, Split, Eye, EyeOff, Edit2, Check, Search, Minimize2, Sparkles,
-  Mail, Globe, BookOpen, Award, Landmark, CreditCard, Copy
+  Mail, Globe, BookOpen, Award, Landmark, CreditCard, Copy, Bell
 } from 'lucide-react';
 
 interface ActiveSheetData {
@@ -567,9 +572,6 @@ function App() {
   };
 
   const [showSettings, setShowSettings] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<'profile' | 'users'>('profile');
-  const [editUsername, setEditUsername] = useState('');
-  const [editPassword, setEditPassword] = useState('');
   const [addUsername, setAddUsername] = useState('');
   const [addPassword, setAddPassword] = useState('');
   const [addComplex, setAddComplex] = useState(COMPLEXES_LIST[0]);
@@ -583,8 +585,7 @@ function App() {
   // حالات تخزين اختيارات المستخدم
   const [academicYear, setAcademicYear] = useState('2026/2027');
   const [complexName, setComplexName] = useState('كل المجمعات');
-  const [pathName, setPathName] = useState('كل المسارات');
-  const [dataStatus, setDataStatus] = useState('الكل');
+  const [pathName] = useState('كل المسارات');
   
   // حالة اختيار الفئة (بيانات أو تقارير)
   const [selectedCategory, setSelectedCategory] = useState<'بيانات' | 'تقارير' | null>(null);
@@ -605,6 +606,8 @@ function App() {
   const [showAdminForm, setShowAdminForm] = useState(false);
   const [showSupportForm, setShowSupportForm] = useState(false);
   const [showClassStatsForm, setShowClassStatsForm] = useState(false);
+  const [showPendingTransfersModal, setShowPendingTransfersModal] = useState(false);
+  const [pendingTransfers, setPendingTransfers] = useState<TransferRequestRecord[]>([]);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const showToast = (text: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -612,6 +615,149 @@ function App() {
     setTimeout(() => {
       setToastMessage(prev => prev?.text === text ? null : prev);
     }, 4000);
+  };
+
+  // جلب وتحديث طلبات النقل المعلقة
+  const fetchPendingTransfers = async () => {
+    try {
+      const currentTarget = user?.role === 'admin' 
+        ? (complexName === 'كل المجمعات' ? '' : complexName) 
+        : (user?.complex || complexName);
+      
+      let allReqs: TransferRequestRecord[] = [];
+      try {
+        allReqs = await getTransferRequestsFromFirestore();
+      } catch (err) {
+        console.warn('Error fetching transfer requests from firestore, using local:', err);
+      }
+
+      // دمج طلبات التخزين المحلي
+      try {
+        const rawLocal = localStorage.getItem('transfer_requests_v1');
+        if (rawLocal) {
+          const localList: TransferRequestRecord[] = JSON.parse(rawLocal);
+          const map = new Map<string, TransferRequestRecord>();
+          allReqs.forEach(r => { if (r.id) map.set(r.id, r); });
+          localList.forEach(r => { 
+            if (r.id) {
+              const existing = map.get(r.id);
+              if (!existing || (existing.status === 'pending' && r.status !== 'pending')) {
+                map.set(r.id, r);
+              }
+            }
+          });
+          allReqs = Array.from(map.values());
+        }
+      } catch {}
+
+      // تصفية الطلبات المعلقة فقط، والموجهة لهذا المجمع (أو كل المجمعات للأدمن)
+      const pending = allReqs.filter(r => {
+        if (r.status !== 'pending') return false;
+        if (!currentTarget || currentTarget === 'كل المجمعات') return true;
+        return r.toComplex === currentTarget;
+      });
+
+      setPendingTransfers(pending);
+    } catch (e) {
+      console.error('Error fetching pending transfers:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchPendingTransfers();
+      const interval = setInterval(fetchPendingTransfers, 8000);
+      return () => clearInterval(interval);
+    }
+  }, [user, complexName]);
+
+  const handleApproveTransfer = async (req: TransferRequestRecord) => {
+    // إزالة فورية من القائمة المعلقة في الواجهة
+    setPendingTransfers(prev => prev.filter(p => p.id !== req.id && p.employeeName !== req.employeeName));
+
+    try {
+      if (req.id) {
+        await updateTransferRequestStatus(req.id, 'approved', req);
+      }
+      try {
+        const rawLocal = localStorage.getItem('transfer_requests_v1');
+        if (rawLocal) {
+          const list: TransferRequestRecord[] = JSON.parse(rawLocal);
+          const updated = list.map(r => (r.id === req.id || (r.employeeName === req.employeeName && r.fromComplex === req.fromComplex)) ? { ...r, status: 'approved' as const } : r);
+          localStorage.setItem('transfer_requests_v1', JSON.stringify(updated));
+        }
+
+        // تحديث كاش الموظف محلياً لنقله للمجمع الجديد فوراً
+        const targetComplex = req.toComplex;
+        if (req.employeeType === 'teacher') {
+          const rawTeachers = localStorage.getItem('registered_teachers_v1');
+          if (rawTeachers) {
+            const tList = JSON.parse(rawTeachers);
+            const updatedT = tList.map((t: any) => 
+              (t.id === req.employeeId || t.jobNum === req.jobNum || t.name === req.employeeName)
+                ? { ...t, complexName: targetComplex }
+                : t
+            );
+            localStorage.setItem('registered_teachers_v1', JSON.stringify(updatedT));
+          }
+        } else if (req.employeeType === 'admin') {
+          const rawAdmins = localStorage.getItem('registered_admins_v1');
+          if (rawAdmins) {
+            const aList = JSON.parse(rawAdmins);
+            const updatedA = aList.map((a: any) => 
+              (a.id === req.employeeId || a.jobNum === req.jobNum || a.name === req.employeeName)
+                ? { ...a, complexName: targetComplex }
+                : a
+            );
+            localStorage.setItem('registered_admins_v1', JSON.stringify(updatedA));
+          }
+        } else if (req.employeeType === 'support') {
+          const rawSupport = localStorage.getItem('registered_support_staff_v1');
+          if (rawSupport) {
+            const sList = JSON.parse(rawSupport);
+            const updatedS = sList.map((s: any) => 
+              (s.id === req.employeeId || (s.jobNum && s.jobNum === req.jobNum) || s.name === req.employeeName)
+                ? { ...s, complexName: targetComplex }
+                : s
+            );
+            localStorage.setItem('registered_support_staff_v1', JSON.stringify(updatedS));
+          }
+        }
+      } catch (locErr) {
+        console.warn('Local storage update error:', locErr);
+      }
+
+      showToast(`تمت الموافقة بنجاح ونقل الموظف (${req.employeeName}) إلى مجمع (${req.toComplex})`, 'success');
+      await fetchPendingTransfers();
+    } catch (err) {
+      console.error('Error approving transfer:', err);
+      showToast('حدث خطأ أثناء الموافقة على النقل', 'error');
+    }
+  };
+
+  const handleRejectTransfer = async (req: TransferRequestRecord) => {
+    // إزالة فورية من القائمة المعلقة في الواجهة
+    setPendingTransfers(prev => prev.filter(p => p.id !== req.id && p.employeeName !== req.employeeName));
+
+    try {
+      if (req.id) {
+        await updateTransferRequestStatus(req.id, 'rejected', req);
+      }
+      try {
+        const rawLocal = localStorage.getItem('transfer_requests_v1');
+        if (rawLocal) {
+          const list: TransferRequestRecord[] = JSON.parse(rawLocal);
+          const updated = list.map(r => (r.id === req.id || (r.employeeName === req.employeeName && r.fromComplex === req.fromComplex)) ? { ...r, status: 'rejected' as const } : r);
+          localStorage.setItem('transfer_requests_v1', JSON.stringify(updated));
+        }
+      } catch {}
+
+      showToast(`تم رفض طلب النقل وظل الموظف (${req.employeeName}) في مجمعه السابق (${req.fromComplex})`, 'info');
+      await fetchPendingTransfers();
+    } catch (err) {
+      console.error('Error rejecting transfer:', err);
+      showToast('حدث خطأ أثناء رفض الطلب', 'error');
+    }
   };
   
   // حالة حفظ التعديلات الشاملة
@@ -1354,7 +1500,28 @@ function App() {
       setMenuCol(null);
       setZoom(1);
       setSheetSearchQuery('');
-      setActiveSheet({ title, data: normalizedData, merges, colors: {} });
+
+      const currentTargetComplex = user?.complex || complexName;
+      let finalData = normalizedData;
+      let finalMerges = merges;
+
+      // إذا كان المجمع محدداً وليس "دار القلم" أو "كل المجمعات"، نقوم بتفريغ بيانات الجدول ونبقي على هيكل وترويسة الأعمدة مفرغة تماماً للمجمع
+      if (currentTargetComplex && currentTargetComplex !== 'دار القلم' && currentTargetComplex !== 'كل المجمعات') {
+        const headerRowsCount = Math.min(3, normalizedData.length);
+        const headers = normalizedData.slice(0, headerRowsCount).map(row => 
+          row.map(cell => {
+            const str = String(cell || '');
+            if (str.includes('دار القلم')) {
+              return str.replace(/دار القلم/g, currentTargetComplex);
+            }
+            return cell;
+          })
+        );
+        const emptyRows = Array.from({ length: 12 }, () => new Array(maxCols).fill(''));
+        finalData = [...headers, ...emptyRows];
+      }
+
+      setActiveSheet({ title, data: finalData, merges: finalMerges, colors: {} });
     } catch (error) {
       console.error("Error loading Excel file:", error);
       showToast("حدث خطأ أثناء قراءة ملف الإكسيل. تأكد من وجوده في المسار الصحيح.", 'error');
@@ -3376,7 +3543,7 @@ function App() {
 
                   const isSearchMatch = Boolean(
                     sheetSearchQuery.trim() && 
-                    String(cell || "").toLowerCase().includes(sheetSearchQuery.trim().toLowerCase())
+                    arabicIncludes(String(cell || ""), sheetSearchQuery)
                   );
 
                   if (isSelected) {
@@ -5224,22 +5391,6 @@ function App() {
   };
 
   
-  const handleChangeCredentials = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSettingsMessage({ type: '', text: '' });
-    try {
-      const data = await updateUser(user!.username, editUsername || undefined, editPassword || undefined, undefined);
-      if (data.success) {
-        setSettingsMessage({ type: 'success', text: 'تم تحديث البيانات بنجاح، سيتم تسجيل خروجك' });
-        setTimeout(() => setUser(null), 2000);
-      } else {
-        setSettingsMessage({ type: 'error', text: data.error || 'حدث خطأ' });
-      }
-    } catch (err) {
-      setSettingsMessage({ type: 'error', text: 'تعذر الاتصال بالخادم' });
-    }
-  };
-
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setSettingsMessage({ type: '', text: '' });
@@ -5260,20 +5411,19 @@ function App() {
   };
 
   const fetchUsers = async () => {
-
     try {
       const data = await getUsers();
       setAllUsers(data);
-      } catch (err) {
+    } catch (err) {
       console.error('Error fetching users:', err);
     }
   };
 
   useEffect(() => {
-    if (showSettings && settingsTab === 'users' && user?.role === 'admin') {
+    if (showSettings && user?.role === 'admin') {
       fetchUsers();
     }
-  }, [showSettings, settingsTab, user]);
+  }, [showSettings, user]);
 
   const handleDeleteUser = async (username: string) => {
     try {
@@ -5391,75 +5541,29 @@ function App() {
 
   return (
     <div id="main-app-container" className="min-h-screen flex flex-col bg-slate-50/80 backdrop-blur-[1.5px] text-slate-800 font-sans p-3 sm:p-6 md:p-12 relative" dir="rtl">
-      {/* لوحة الإعدادات */}
-      {showSettings && (
+      {/* لوحة إدارة المستخدمين للأدمن فقط */}
+      {showSettings && user.role === 'admin' && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col">
             <div className="p-4 border-b flex justify-between items-center bg-slate-50">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <UserCog size={20} className="text-blue-600" />
-                إعدادات النظام
+                إدارة المستخدمين
               </h2>
-              <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-slate-600 p-1">
+              <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
                 <X size={24} />
               </button>
             </div>
-            
-            <div className="flex border-b">
-              <button 
-                onClick={() => setSettingsTab('profile')}
-                className={`flex-1 py-3 text-sm font-bold border-b-2 transition-all ${settingsTab === 'profile' ? 'border-blue-500 text-blue-600 bg-blue-50/50' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}
-              >
-                تغيير بياناتي
-              </button>
-              {user.role === 'admin' && (
-                <button 
-                  onClick={() => setSettingsTab('users')}
-                  className={`flex-1 py-3 text-sm font-bold border-b-2 transition-all ${settingsTab === 'users' ? 'border-blue-500 text-blue-600 bg-blue-50/50' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}
-                >
-                  إضافة مستخدم جديد
-                </button>
-              )}
-            </div>
 
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto max-h-[85vh]">
               {settingsMessage.text && (
                 <div className={`p-3 rounded-lg mb-4 text-sm font-bold text-center ${settingsMessage.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
                   {settingsMessage.text}
                 </div>
               )}
 
-              {settingsTab === 'profile' && (
-                <form onSubmit={handleChangeCredentials} className="flex flex-col gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">اسم المستخدم الجديد</label>
-                    <input 
-                      type="text" 
-                      value={editUsername}
-                      onChange={e => setEditUsername(e.target.value)}
-                      className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-all text-slate-800"
-                      placeholder="اتركه فارغاً إذا لم ترغب بتغييره"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">كلمة المرور الجديدة</label>
-                    <input 
-                      type="password" 
-                      value={editPassword}
-                      onChange={e => setEditPassword(e.target.value)}
-                      className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-all text-slate-800"
-                      placeholder="اتركه فارغاً إذا لم ترغب بتغييرها"
-                    />
-                  </div>
-                  <button type="submit" className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-md active:scale-[0.98]">
-                    حفظ التعديلات
-                  </button>
-                </form>
-              )}
-
-              {settingsTab === 'users' && user.role === 'admin' && (
-                <div className="flex flex-col gap-6">
-                  <form onSubmit={handleAddUser} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-6">
+                <form onSubmit={handleAddUser} className="flex flex-col gap-4">
                     <div>
                       <label className="block text-sm font-bold text-slate-700 mb-1">اسم المستخدم</label>
                       <input 
@@ -5585,7 +5689,6 @@ function App() {
                     </div>
                   </div>
                 </div>
-              )}
             </div>
           </div>
         </div>
@@ -5595,14 +5698,38 @@ function App() {
         
         {/* الترويسة والشعارات */}
         <header className="relative w-full flex flex-col gap-4 md:gap-6">
-          <div className="w-full flex justify-end">
+          <div className="w-full flex justify-end items-center">
+            {user.role === 'admin' && (
+              <button 
+                onClick={() => setShowSettings(true)}
+                className="bg-white border border-blue-200 hover:bg-blue-50 text-blue-700 px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-sm cursor-pointer ml-2"
+              >
+                <UserCog size={18} />
+                إدارة المستخدمين
+              </button>
+            )}
+
+            {/* أيقونة طلبات معلقة بجوار تسجيل الخروج */}
             <button 
-              onClick={() => setShowSettings(true)}
-              className="bg-white border border-blue-200 hover:bg-blue-50 text-blue-700 px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-sm"
+              type="button"
+              onClick={() => setShowPendingTransfersModal(true)}
+              className="relative bg-white border border-amber-300 hover:bg-amber-50 text-amber-900 px-3.5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-sm cursor-pointer ml-2"
+              title="الطلبات المعلقة لنقل الموظفين"
             >
-              <UserCog size={18} />
-              الإعدادات
+              <div className="relative">
+                <Bell size={18} className="text-amber-600" />
+                {pendingTransfers.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white" />
+                )}
+              </div>
+              <span>طلبات معلقة</span>
+              {pendingTransfers.length > 0 && (
+                <span className="bg-rose-600 text-white text-[11px] px-2 py-0.5 rounded-full font-black animate-pulse shadow-xs">
+                  {pendingTransfers.length}
+                </span>
+              )}
             </button>
+
             <button 
               onClick={() => {
                 setUser(null);
@@ -5612,8 +5739,10 @@ function App() {
                 setShowTeacherForm(false);
                 setShowAdminForm(false);
                 setShowSupportForm(false);
+                setShowClassStatsForm(false);
+                setShowPendingTransfersModal(false);
               }}
-              className="bg-white border border-red-200 hover:bg-red-50 text-red-600 px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-sm mr-2"
+              className="bg-white border border-red-200 hover:bg-red-50 text-red-600 px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-sm cursor-pointer"
             >
               تسجيل الخروج
             </button>
@@ -5667,23 +5796,6 @@ function App() {
               >
                 {user.role === 'admin' && <option value="كل المجمعات">كل المجمعات</option>}
                 {COMPLEXES_LIST.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-
-            {/* بيانات (حالة العمل) */}
-            <div className="flex-1 w-full">
-              <label className="flex items-center gap-2 text-sm font-bold text-blue-900 mb-2">
-                <UserSquare2 size={16} className="text-blue-500" />
-                بيانات
-              </label>
-              <select 
-                value={dataStatus}
-                onChange={(e) => setDataStatus(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all cursor-pointer text-slate-700"
-              >
-                <option value="الكل">الكل</option>
-                <option value="على رأس العمل">على رأس العمل</option>
-                <option value="ترك العمل">ترك العمل</option>
               </select>
             </div>
 
@@ -5796,10 +5908,9 @@ function App() {
                 </div>
               </motion.div>
 
-              {/* شرط عرض البيانات */}
-              {(savedData.complex === 'دار القلم' || (user?.role === 'admin' && savedData.complex === 'كل المجمعات')) && savedData.year === '2026/2027' ? (
-                <>
-                  {/* أزرار اختيار الفئة (بيانات أو تقارير) */}
+              {/* عرض الفئات والبطاقات لكافة المجمعات */}
+              <>
+                {/* أزرار اختيار الفئة (بيانات أو تقارير) */}
                   <div className="flex flex-row justify-center gap-4 md:gap-6 mb-8 w-full max-w-2xl mx-auto">
                     <button
                       onClick={() => setSelectedCategory(prev => prev === 'بيانات' ? null : 'بيانات')}
@@ -5854,7 +5965,7 @@ function App() {
                         animate="show"
                         className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4 lg:gap-5 w-full"
                       >
-                        {whiteCards.filter(card => card.name.includes(searchQuery)).map((card, idx) => (
+                        {whiteCards.filter(card => arabicIncludes(card.name, searchQuery)).map((card, idx) => (
                           <motion.button 
                             onClick={() => {
                               if (card.name === 'بيانات الكادر التعليمي' || card.name === 'بيانات المعلمين') {
@@ -5911,9 +6022,9 @@ function App() {
                         >
                           {!activeReportCategory ? (
                             blueCards.filter(card => {
-                              if (card.name.includes(searchQuery)) return true;
+                              if (arabicIncludes(card.name, searchQuery)) return true;
                               const subCards = reportSubCards[card.name];
-                              if (subCards && subCards.some(sub => sub.name.includes(searchQuery))) return true;
+                              if (subCards && subCards.some(sub => arabicIncludes(sub.name, searchQuery))) return true;
                               return false;
                             }).map((card, idx) => (
                               <motion.button 
@@ -5937,7 +6048,7 @@ function App() {
                               </motion.button>
                             ))
                           ) : (
-                            reportSubCards[activeReportCategory]?.filter(subCard => subCard.name.includes(searchQuery)).map((subCard, idx) => {
+                            reportSubCards[activeReportCategory]?.filter(subCard => arabicIncludes(subCard.name, searchQuery)).map((subCard, idx) => {
                               const parentCard = blueCards.find(c => c.name === activeReportCategory);
                               const bgClass = parentCard?.bgClass || 'bg-blue-600';
                               const borderClass = parentCard?.borderClass || 'border-blue-700';
@@ -5966,17 +6077,6 @@ function App() {
                     )}
                   </div>
                 </>
-              ) : (
-                <motion.div variants={itemVariants} className="w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
-                  <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-400">
-                    <LayoutGrid size={48} />
-                  </div>
-                  <h3 className="text-2xl font-bold text-slate-700 mb-2">لا توجد بيانات متاحة</h3>
-                  <p className="text-slate-500 text-lg">
-                    عذراً، البيانات المتوفرة حالياً مخصصة فقط لـ <strong>مجمع دار القلم</strong> للعام الدراسي <strong>2026/2027</strong>.
-                  </p>
-                </motion.div>
-              )}
 
             </motion.div>
           )}
@@ -6018,6 +6118,19 @@ function App() {
               academicYear={academicYear}
               complexName={user?.complex || complexName}
               isAdmin={user?.role === 'admin'}
+            />
+          )}
+
+          {/* نافذة استعراض والموافقة على طلبات النقل المعلقة */}
+          {showPendingTransfersModal && (
+            <PendingTransfersModal
+              isOpen={showPendingTransfersModal}
+              onClose={() => setShowPendingTransfersModal(false)}
+              currentComplex={user?.complex || complexName}
+              isAdmin={user?.role === 'admin'}
+              pendingRequests={pendingTransfers}
+              onApprove={handleApproveTransfer}
+              onReject={handleRejectTransfer}
             />
           )}
 
