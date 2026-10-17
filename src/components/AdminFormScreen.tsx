@@ -135,6 +135,7 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
   const [ibanDigits, setIbanDigits] = useState('');
   const [bank, setBank] = useState(bankOptions[0] || 'مصرف الراجحي');
   const [startDate, setStartDate] = useState('');
+  const [birthDate, setBirthDate] = useState('');
 
   // حالة نافذة إدارة الخيارات للأدمن
   const [optionManager, setOptionManager] = useState<{
@@ -429,6 +430,7 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
 
     setBank(admin.bank || 'مصرف الراجحي');
     setStartDate(admin.startDate || '');
+    setBirthDate(admin.birthDate || '');
 
     setIsSearchOpen(false);
     setErrorMessage(null);
@@ -456,6 +458,7 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
     setIbanDigits('');
     setBank(bankOptions[0] || 'مصرف الراجحي');
     setStartDate('');
+    setBirthDate('');
     setErrorMessage(null);
   };
 
@@ -494,7 +497,8 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
       email: email.trim(),
       iban: fullIban,
       bank: bank.trim(),
-      startDate: startDate.trim()
+      startDate: startDate.trim(),
+      birthDate: birthDate.trim()
     };
 
     setIsSaving(true);
@@ -563,7 +567,8 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
       email: email.trim(),
       iban: fullIban,
       bank: bank.trim(),
-      startDate: startDate.trim()
+      startDate: startDate.trim(),
+      birthDate: birthDate.trim()
     };
 
     setIsSaving(true);
@@ -1124,6 +1129,20 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
                 <DatePickerField
                   value={startDate}
                   onChange={setStartDate}
+                  accentColor="indigo"
+                  dropUp={true}
+                />
+              </div>
+
+              {/* 14. تاريخ الميلاد */}
+              <div>
+                <label className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 mb-0.5">
+                  <Calendar size={13} className="text-indigo-600" />
+                  <span>تاريخ الميلاد:</span>
+                </label>
+                <DatePickerField
+                  value={birthDate}
+                  onChange={setBirthDate}
                   accentColor="indigo"
                   dropUp={true}
                 />

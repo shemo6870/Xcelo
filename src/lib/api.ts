@@ -117,6 +117,7 @@ export interface TeacherRecord {
   iban: string;
   bank: string;
   startDate: string;
+  birthDate?: string;
   createdAt?: string;
 }
 
@@ -166,6 +167,7 @@ export interface AdminRecord {
   iban: string;
   bank: string;
   startDate: string;
+  birthDate?: string;
   createdAt?: string;
 }
 
@@ -212,6 +214,7 @@ export interface SupportStaffRecord {
   iban: string;
   bank: string;
   startDate: string;
+  birthDate?: string;
   createdAt?: string;
 }
 
@@ -415,6 +418,49 @@ export const updateTransferRequestStatus = async (
 
   return { success: true };
 };
+
+// ==========================================
+// إعدادات الإسنادات وتوزيع الحصص اليومية
+// ==========================================
+export interface TimetableDailyPeriodsRecord {
+  id?: string;
+  complexName: string;
+  academicYear: string;
+  days: Record<string, boolean>;
+  rows: Array<{
+    id: string;
+    gradeName: string;
+    periods: Record<string, number | ''>;
+    planPeriods: number;
+  }>;
+  updatedAt?: string;
+}
+
+export const saveDailyPeriodsToFirestore = async (record: TimetableDailyPeriodsRecord): Promise<any> => {
+  const docId = `${record.complexName}_${record.academicYear}`.replace(/\//g, '-').replace(/\s+/g, '_');
+  const docRef = doc(db, 'timetable_daily_periods', docId);
+  await setDoc(docRef, sanitizeForFirestore({
+    ...record,
+    updatedAt: new Date().toISOString()
+  }), { merge: true });
+  return { success: true, id: docId };
+};
+
+export const getDailyPeriodsFromFirestore = async (complexName: string, academicYear: string): Promise<TimetableDailyPeriodsRecord | null> => {
+  try {
+    const docId = `${complexName}_${academicYear}`.replace(/\//g, '-').replace(/\s+/g, '_');
+    const docRef = doc(db, 'timetable_daily_periods', docId);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() } as TimetableDailyPeriodsRecord;
+    }
+    return null;
+  } catch (e) {
+    console.warn('Error fetching daily periods from firestore:', e);
+    return null;
+  }
+};
+
 
 
 

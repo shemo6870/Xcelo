@@ -4,7 +4,7 @@ import { Calendar, ChevronRight, ChevronLeft, X, Check } from 'lucide-react';
 interface DatePickerFieldProps {
   value: string;
   onChange: (val: string) => void;
-  accentColor?: 'blue' | 'indigo';
+  accentColor?: 'blue' | 'indigo' | 'teal';
   dropUp?: boolean;
 }
 
@@ -15,8 +15,8 @@ const MONTHS_AR = [
 
 const DAYS_AR = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
 
-// سنوات من 1980 حتى 2035
-const YEARS = Array.from({ length: 56 }, (_, i) => 1980 + i);
+// سنوات من 1950 حتى 2035 لتغطية تواريخ الميلاد وتواريخ المباشرة
+const YEARS = Array.from({ length: 86 }, (_, i) => 1950 + i);
 
 export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   value,
@@ -150,12 +150,17 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   };
 
   const isIndigo = accentColor === 'indigo';
+  const isTeal = accentColor === 'teal';
   const borderFocusClass = isIndigo 
     ? 'focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100' 
+    : isTeal
+    ? 'focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-100'
     : 'focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100';
-  const iconColorClass = isIndigo ? 'text-indigo-600' : 'text-blue-600';
+  const iconColorClass = isIndigo ? 'text-indigo-600' : isTeal ? 'text-teal-600' : 'text-blue-600';
   const btnSelectClass = isIndigo 
     ? 'bg-indigo-600 text-white font-bold' 
+    : isTeal
+    ? 'bg-teal-600 text-white font-bold'
     : 'bg-blue-600 text-white font-bold';
 
   return (

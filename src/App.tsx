@@ -6,6 +6,7 @@ import { TeacherFormScreen } from './components/TeacherFormScreen';
 import { AdminFormScreen } from './components/AdminFormScreen';
 import { SupportFormScreen } from './components/SupportFormScreen';
 import { ClassStatsFormScreen } from './components/ClassStatsFormScreen';
+import { AssignmentsScreen } from './components/AssignmentsScreen';
 import { PendingTransfersModal } from './components/PendingTransfersModal';
 import { arabicIncludes } from './lib/arabicUtils';
 import React, { useState, useEffect, useRef } from 'react';
@@ -606,6 +607,7 @@ function App() {
   const [showAdminForm, setShowAdminForm] = useState(false);
   const [showSupportForm, setShowSupportForm] = useState(false);
   const [showClassStatsForm, setShowClassStatsForm] = useState(false);
+  const [showAssignmentsForm, setShowAssignmentsForm] = useState(false);
   const [showPendingTransfersModal, setShowPendingTransfersModal] = useState(false);
   const [pendingTransfers, setPendingTransfers] = useState<TransferRequestRecord[]>([]);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -1067,6 +1069,22 @@ function App() {
     if (title === 'إحصاء الفصول والطلاب' || title === 'إحصاء الطلاب' || sheetName === 'إحصاء الطلاب' || title === 'الطلاب والفصول') {
       setActiveSheet(null);
       setShowClassStatsForm(true);
+      return;
+    }
+
+    // إخفاء أي بيانات قديمة للإسنادات وفتح شاشة الإسنادات وتوزيع الحصص اليومية المنبثقة مباشرة
+    if (
+      title.includes('اسناد') || title.includes('إسناد') || 
+      sheetName.includes('اسناد') || sheetName.includes('إسناد') ||
+      title === 'الاسنادات' || title === 'الإسنادات' ||
+      title === 'بطاقة الاسنادات' || title === 'بطاقة الإسنادات'
+    ) {
+      setActiveSheet(null);
+      setShowTeacherForm(false);
+      setShowAdminForm(false);
+      setShowSupportForm(false);
+      setShowClassStatsForm(false);
+      setShowAssignmentsForm(true);
       return;
     }
 
@@ -5740,6 +5758,7 @@ function App() {
                 setShowAdminForm(false);
                 setShowSupportForm(false);
                 setShowClassStatsForm(false);
+                setShowAssignmentsForm(false);
                 setShowPendingTransfersModal(false);
               }}
               className="bg-white border border-red-200 hover:bg-red-50 text-red-600 px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-sm cursor-pointer"
@@ -5752,7 +5771,7 @@ function App() {
               {user.role === 'admin' ? (
                 <img src="/1000099843-removebg-preview.png" alt="التنمية المتكاملة" className="h-16 sm:h-24 md:h-36 lg:h-48 xl:h-[22rem] w-auto object-contain flex-shrink-0 -my-2 sm:-my-4 md:-my-6" />
               ) : (
-                <img src={COMPLEX_LOGOS[user.complex || ''] || '/1000099845-removebg-preview.png'} alt={user.complex} className="h-16 sm:h-24 md:h-36 lg:h-48 xl:h-[22rem] w-auto object-contain flex-shrink-0 -my-2 sm:-my-4 md:-my-6" />
+                <img src={COMPLEX_LOGOS[user?.complex || ''] || '/1000099845-removebg-preview.png'} alt={user?.complex || ''} className="h-16 sm:h-24 md:h-36 lg:h-48 xl:h-[22rem] w-auto object-contain flex-shrink-0 -my-2 sm:-my-4 md:-my-6" />
               )}
             </div>
           </div>
@@ -5980,6 +5999,23 @@ function App() {
                               } else if (card.name === 'إحصاء الفصول والطلاب' || card.name === 'إحصاء الطلاب' || card.sheetName === 'إحصاء الطلاب' || card.name === 'الطلاب والفصول') {
                                 setActiveSheet(null);
                                 setShowClassStatsForm(true);
+                              } else if (
+                                card.name === 'بطاقة الاسنادات' || 
+                                card.name === 'بطاقة الإسنادات' || 
+                                card.name === 'الاسنادات' || 
+                                card.name === 'الإسنادات' || 
+                                card.sheetName === 'الاسنادات' ||
+                                card.name.includes('اسناد') ||
+                                card.name.includes('إسناد') ||
+                                card.sheetName.includes('اسناد') ||
+                                card.sheetName.includes('إسناد')
+                              ) {
+                                setActiveSheet(null);
+                                setShowTeacherForm(false);
+                                setShowAdminForm(false);
+                                setShowSupportForm(false);
+                                setShowClassStatsForm(false);
+                                setShowAssignmentsForm(true);
                               } else {
                                 loadSheetData(card.name, card.sheetName);
                               }
@@ -6058,7 +6094,28 @@ function App() {
                               return (
                                 <motion.button 
                                   key={idx}
-                                  onClick={() => loadSheetData(subCard.name, subCard.sheetName)}
+                                  onClick={() => {
+                                    if (
+                                      subCard.name === 'بطاقة الاسنادات' || 
+                                      subCard.name === 'بطاقة الإسنادات' || 
+                                      subCard.name === 'الاسنادات' || 
+                                      subCard.name === 'الإسنادات' || 
+                                      subCard.sheetName === 'الاسنادات' ||
+                                      subCard.name.includes('اسناد') ||
+                                      subCard.name.includes('إسناد') ||
+                                      subCard.sheetName.includes('اسناد') ||
+                                      subCard.sheetName.includes('إسناد')
+                                    ) {
+                                      setActiveSheet(null);
+                                      setShowTeacherForm(false);
+                                      setShowAdminForm(false);
+                                      setShowSupportForm(false);
+                                      setShowClassStatsForm(false);
+                                      setShowAssignmentsForm(true);
+                                    } else {
+                                      loadSheetData(subCard.name, subCard.sheetName);
+                                    }
+                                  }}
                                   variants={itemVariants}
                                   className={`flex flex-col items-center justify-center gap-2 lg:gap-3 p-2 lg:p-4 ${bgClass} rounded-2xl border ${borderClass} shadow-md transition-all duration-300 group aspect-square text-center w-full relative z-10 ${hoverClass}`}
                                 >
@@ -6121,6 +6178,16 @@ function App() {
             />
           )}
 
+          {/* شاشة بطاقة الإسنادات وتوزيع عدد الحصص اليومية */}
+          {showAssignmentsForm && (
+            <AssignmentsScreen
+              onBack={() => setShowAssignmentsForm(false)}
+              academicYear={academicYear}
+              complexName={user?.complex || complexName}
+              isAdmin={user?.role === 'admin'}
+            />
+          )}
+
           {/* نافذة استعراض والموافقة على طلبات النقل المعلقة */}
           {showPendingTransfersModal && (
             <PendingTransfersModal
@@ -6153,7 +6220,7 @@ function App() {
                       </h2>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs bg-blue-50 text-blue-700 font-bold px-2.5 py-0.5 rounded-full border border-blue-100">
-                          {user.complex || complexName}
+                          {user?.complex || complexName}
                         </span>
                         <span className="text-xs bg-emerald-50 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full border border-emerald-100">
                           {academicYear}
