@@ -456,7 +456,41 @@ export const getDailyPeriodsFromFirestore = async (complexName: string, academic
     }
     return null;
   } catch (e) {
-    console.warn('Error fetching daily periods from firestore:', e);
+    console.warn('Error fetching daily periods:', e);
+    return null;
+  }
+};
+
+export const saveSubjectQuotaToFirestore = async (
+  key: string,
+  subjects: Array<{ id: string; name: string; periods: number }>
+): Promise<any> => {
+  try {
+    const cleanKey = key.replace(/\//g, '-').replace(/\s+/g, '_');
+    const docRef = doc(db, 'subject_quotas', cleanKey);
+    await setDoc(docRef, sanitizeForFirestore({
+      subjects,
+      updatedAt: new Date().toISOString()
+    }), { merge: true });
+    return { success: true };
+  } catch (e) {
+    console.warn('Error saving subject quota to firestore:', e);
+    return { success: false };
+  }
+};
+
+export const getSubjectQuotaFromFirestore = async (
+  key: string
+): Promise<Array<{ id: string; name: string; periods: number }> | null> => {
+  try {
+    const cleanKey = key.replace(/\//g, '-').replace(/\s+/g, '_');
+    const docRef = doc(db, 'subject_quotas', cleanKey);
+    const snap = await getDoc(docRef);
+    if (snap.exists() && Array.isArray(snap.data()?.subjects)) {
+      return snap.data()?.subjects;
+    }
+    return null;
+  } catch (e) {
     return null;
   }
 };

@@ -103,6 +103,9 @@ export const ManagedSelectField: React.FC<ManagedSelectFieldProps> = ({
         }}
         className={`w-full py-1.5 px-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 ${focusClass} transition-all cursor-pointer`}
       >
+        {value && !options.includes(value) && (
+          <option value={value}>{value}</option>
+        )}
         {options.map((opt) => (
           <option key={opt} value={opt}>
             {formatOptionLabel ? formatOptionLabel(opt) : opt}
