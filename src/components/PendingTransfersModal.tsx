@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Bell, Check, X, Building2, User, 
   ArrowLeftRight, Calendar, AlertCircle, FileText, CheckCircle2, XCircle
 } from 'lucide-react';
 import { TransferRequestRecord } from '../lib/api';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface PendingTransfersModalProps {
   isOpen: boolean;
@@ -24,6 +26,8 @@ export const PendingTransfersModal: React.FC<PendingTransfersModalProps> = ({
   onApprove,
   onReject
 }) => {
+  useBodyScrollLock(isOpen);
+
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -78,9 +82,9 @@ export const PendingTransfersModal: React.FC<PendingTransfersModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in" dir="rtl">
-      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95">
+  const modalContent = (
+    <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in overscroll-contain" dir="rtl">
+      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 overscroll-contain">
         
         {/* شريط العنوان */}
         <div className="bg-white border-b border-slate-200 px-5 sm:px-6 py-4 flex items-center justify-between shrink-0">
@@ -126,7 +130,7 @@ export const PendingTransfersModal: React.FC<PendingTransfersModalProps> = ({
         )}
 
         {/* محتوى القائمة */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 overscroll-contain custom-scrollbar">
           {pendingRequests.length === 0 ? (
             <div className="p-8 sm:p-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-3">
               <div className="w-14 h-14 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
@@ -231,4 +235,6 @@ export const PendingTransfersModal: React.FC<PendingTransfersModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

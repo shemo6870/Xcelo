@@ -26,3 +26,9 @@ body {
     background: #64748b;
   }
 }
+
+body.modal-open-scroll-lock {
+  overflow: hidden !important;
+  overscroll-behavior: contain !important;
+}
+

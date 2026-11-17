@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Building2, Save, User, Hash, Globe, Users, 
   CreditCard, Phone, Award, BookOpen, FileCheck, 
@@ -12,6 +13,7 @@ import {
   deleteAdminFromFirestore,
   updateAdminInFirestore
 } from '../lib/api';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { DatePickerField } from './DatePickerField';
 import { OptionManagerModal } from './OptionManagerModal';
 import { ManagedSelectField } from './ManagedSelectField';
@@ -76,6 +78,9 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
   complexName,
   isAdmin = true
 }) => {
+  // قفل تمرير الصفحة الرئيسية في الخلفية عند فتح هذه النافذة المنبثقة
+  useBodyScrollLock(true);
+
   // خيارات كافة المدخلات القابلة للتخصيص من قبل الأدمن
   const [nationalityOptions, setNationalityOptions] = useState<string[]>(() => 
     loadCustomOptions('custom_nationalities_v1', DEFAULT_NATIONALITIES)
@@ -642,9 +647,9 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
     setTimeout(() => setSuccessMessage(null), 4000);
   };
 
-  return (
+  const modalContent = (
     <div 
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-3 md:p-4" 
+      className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-3 md:p-4 overscroll-contain" 
       dir="rtl"
       onClick={(e) => {
         if (e.target === e.currentTarget && !adminToDelete) {
@@ -654,8 +659,8 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
     >
       {/* نافذة تأكيد الحذف المنبثقة والآمنة داخلياً */}
       {adminToDelete && (
-        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-slate-200 text-center space-y-4 animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overscroll-contain">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-slate-200 text-center space-y-4 animate-in fade-in zoom-in-95 overscroll-contain">
             <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
               <Trash2 size={24} />
             </div>
@@ -687,7 +692,7 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
       )}
 
       {/* بطاقة النافذة المنبثقة الرئيسية - الكادر الإداري */}
-      <div className="relative w-full max-w-5xl lg:max-w-6xl h-auto max-h-[96vh] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col justify-between my-auto animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-5xl lg:max-w-6xl h-auto max-h-[96vh] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col justify-between my-auto animate-in fade-in zoom-in-95 duration-150 overscroll-contain">
         
         {/* 1. شريط العنوان العلوي (مضغوط وأنيق ومثبت) */}
         <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2.5 shadow-xs flex items-center justify-between shrink-0">
@@ -733,7 +738,7 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
           className="flex-1 flex flex-col min-h-0 overflow-hidden"
         >
           {/* محتوى الحقول القابل للتمرير إن لزم، ومضغوط بحيث يظهر كاملاً في معظم الشاشات */}
-          <div className="p-3 sm:p-4 md:p-5 flex-1 overflow-y-auto space-y-2.5 sm:space-y-3">
+          <div className="p-3 sm:p-4 md:p-5 flex-1 overflow-y-auto space-y-2.5 sm:space-y-3 overscroll-contain custom-scrollbar">
             
             {/* خانة البحث فوق الحقول بالاسم أو الرقم الوظيفي حصراً في الكادر الإداري */}
             <div ref={searchContainerRef} className="relative w-full z-30 shrink-0">
@@ -1244,4 +1249,6 @@ export const AdminFormScreen: React.FC<AdminFormScreenProps> = ({
       />
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

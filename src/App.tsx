@@ -8,8 +8,10 @@ import { SupportFormScreen } from './components/SupportFormScreen';
 import { ClassStatsFormScreen } from './components/ClassStatsFormScreen';
 import { AssignmentsScreen } from './components/AssignmentsScreen';
 import { PendingTransfersModal } from './components/PendingTransfersModal';
+import { useBodyScrollLock } from './hooks/useBodyScrollLock';
 import { arabicIncludes } from './lib/arabicUtils';
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import * as XLSX from 'xlsx';
 import { 
@@ -611,6 +613,19 @@ function App() {
   const [showPendingTransfersModal, setShowPendingTransfersModal] = useState(false);
   const [pendingTransfers, setPendingTransfers] = useState<TransferRequestRecord[]>([]);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  // قفل اسكرول الصفحة الرئيسية عند فتح أي نافذة منبثقة أو شاشة فرعية
+  const isAnyModalActive = Boolean(
+    showSettings ||
+    showTeacherForm ||
+    showAdminForm ||
+    showSupportForm ||
+    showClassStatsForm ||
+    showAssignmentsForm ||
+    showPendingTransfersModal ||
+    activeSheet
+  );
+  useBodyScrollLock(isAnyModalActive);
 
   const showToast = (text: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToastMessage({ text, type });
@@ -5558,11 +5573,11 @@ function App() {
   }
 
   return (
-    <div id="main-app-container" className="min-h-screen flex flex-col bg-slate-50/80 backdrop-blur-[1.5px] text-slate-800 font-sans p-3 sm:p-6 md:p-12 relative" dir="rtl">
+    <div id="main-app-container" className="min-h-screen flex flex-col bg-slate-50/80 text-slate-800 font-sans p-3 sm:p-6 md:p-12 relative" dir="rtl">
       {/* لوحة إدارة المستخدمين للأدمن فقط */}
-      {showSettings && user.role === 'admin' && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col">
+      {showSettings && user.role === 'admin' && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overscroll-contain">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col overscroll-contain">
             <div className="p-4 border-b flex justify-between items-center bg-slate-50">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <UserCog size={20} className="text-blue-600" />
@@ -5573,7 +5588,7 @@ function App() {
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto max-h-[85vh]">
+            <div className="p-6 overflow-y-auto max-h-[85vh] overscroll-contain custom-scrollbar">
               {settingsMessage.text && (
                 <div className={`p-3 rounded-lg mb-4 text-sm font-bold text-center ${settingsMessage.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
                   {settingsMessage.text}
@@ -5626,7 +5641,7 @@ function App() {
                       <Users size={18} className="text-blue-600" />
                       قائمة المستخدمين
                     </h3>
-                    <div className="flex flex-col gap-3 max-h-60 overflow-y-auto pr-2">
+                    <div className="flex flex-col gap-3 max-h-60 overflow-y-auto pr-2 overscroll-contain custom-scrollbar">
                       {allUsers.map(u => (
                         <div key={u.username} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
                           {editingUsername === u.username ? (
@@ -5709,7 +5724,8 @@ function App() {
                 </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 flex-1 w-full flex flex-col">
@@ -6202,11 +6218,11 @@ function App() {
           )}
 
           {/* منطقة عرض جدول الإكسيل - شاشة كاملة تأخذ كامل طول وعرض الموقع */}
-          {activeSheet && (
+          {activeSheet && typeof document !== 'undefined' && createPortal(
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="fixed inset-0 z-50 bg-slate-100 flex flex-col w-screen h-screen overflow-hidden p-2 sm:p-4 md:p-5 m-0 rounded-none"
+              className="fixed inset-0 z-[9999] bg-slate-100 flex flex-col w-screen h-screen overflow-hidden p-2 sm:p-4 md:p-5 m-0 rounded-none overscroll-contain"
             >
               <div className="flex flex-col lg:flex-row justify-between items-center mb-3 gap-3 bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm shrink-0">
                 <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -6547,7 +6563,8 @@ function App() {
               )}
 
               {renderTable()}
-            </motion.div>
+            </motion.div>,
+            document.body
           )}
 
         </main>

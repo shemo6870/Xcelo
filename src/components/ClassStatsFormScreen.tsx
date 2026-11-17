@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   BarChart3, Save, Compass, Users, BookOpen, 
   Layers, Check, X, Trash2, Edit3, AlertCircle, 
@@ -12,6 +13,7 @@ import {
   deleteClassStatsFromFirestore,
   updateClassStatsInFirestore
 } from '../lib/api';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { OptionManagerModal } from './OptionManagerModal';
 import { ManagedSelectField } from './ManagedSelectField';
 import { arabicIncludes } from '../lib/arabicUtils';
@@ -66,6 +68,9 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
   complexName,
   isAdmin = true
 }) => {
+  // قفل تمرير الصفحة الرئيسية في الخلفية عند فتح هذه النافذة المنبثقة
+  useBodyScrollLock(true);
+
   // 1. خيارات المسار العام (مشتركة مع إمكانية إدارة للأدمن)
   const [trackOptions, setTrackOptions] = useState<string[]>(() => 
     loadCustomOptions('custom_tracks_v1', DEFAULT_TRACKS)
@@ -699,13 +704,13 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
     setTimeout(() => setSuccessMessage(null), 3000);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overscroll-contain" dir="rtl">
       
       {/* نافذة تأكيد الحذف */}
       {recordToDelete && (
-        <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-slate-200 text-center space-y-4 animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overscroll-contain">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-slate-200 text-center space-y-4 animate-in fade-in zoom-in-95 overscroll-contain">
             <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
               <Trash2 size={24} />
             </div>
@@ -739,7 +744,7 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
       {/* النافذة الرئيسية */}
       <div 
         ref={formTopRef}
-        className="relative w-full max-w-5xl lg:max-w-6xl h-auto max-h-[96vh] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col justify-between my-auto animate-in fade-in zoom-in-95 duration-150"
+        className="relative w-full max-w-5xl lg:max-w-6xl h-auto max-h-[96vh] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col justify-between my-auto animate-in fade-in zoom-in-95 duration-150 overscroll-contain"
       >
         
         {/* 1. شريط العنوان العلوي */}
@@ -783,7 +788,7 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
         </div>
 
         {/* 2. محتوى النافذة المنبثقة القابل للتمرير */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 overscroll-contain custom-scrollbar">
 
           {/* شريط البحث المباشر للوصول السريع والتعديل والحذف */}
           <div className="space-y-2">
@@ -1459,4 +1464,6 @@ export const ClassStatsFormScreen: React.FC<ClassStatsFormScreenProps> = ({
 
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

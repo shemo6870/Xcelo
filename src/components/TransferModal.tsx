@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowLeftRight, Building2, User, Check, X, AlertCircle, FileText, Send } from 'lucide-react';
 import { COMPLEXES_LIST } from '../lib/customOptions';
 import { TransferRequestRecord, createTransferRequest } from '../lib/api';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface TransferModalProps {
   isOpen: boolean;
@@ -27,6 +29,8 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   currentComplex,
   onTransferSuccess
 }) => {
+  useBodyScrollLock(isOpen);
+
   // تصفية المجمعات لاستبعاد المجمع الحالي للموظف
   const availableTargetComplexes = COMPLEXES_LIST.filter(c => c !== currentComplex);
   
@@ -112,9 +116,11 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in" dir="rtl">
-      <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
+  if (!isOpen || !employee) return null;
+
+  const modalContent = (
+    <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in overscroll-contain" dir="rtl">
+      <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 overscroll-contain">
         
         {/* الرأس */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -236,4 +242,6 @@ export const TransferModal: React.FC<TransferModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

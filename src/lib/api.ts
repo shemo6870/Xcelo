@@ -426,6 +426,7 @@ export interface TimetableDailyPeriodsRecord {
   id?: string;
   complexName: string;
   academicYear: string;
+  stage?: string;
   days: Record<string, boolean>;
   rows: Array<{
     id: string;
@@ -437,7 +438,8 @@ export interface TimetableDailyPeriodsRecord {
 }
 
 export const saveDailyPeriodsToFirestore = async (record: TimetableDailyPeriodsRecord): Promise<any> => {
-  const docId = `${record.complexName}_${record.academicYear}`.replace(/\//g, '-').replace(/\s+/g, '_');
+  const stagePart = record.stage ? `_${record.stage}` : '';
+  const docId = `${record.complexName}_${record.academicYear}${stagePart}`.replace(/\//g, '-').replace(/\s+/g, '_');
   const docRef = doc(db, 'timetable_daily_periods', docId);
   await setDoc(docRef, sanitizeForFirestore({
     ...record,
@@ -446,9 +448,10 @@ export const saveDailyPeriodsToFirestore = async (record: TimetableDailyPeriodsR
   return { success: true, id: docId };
 };
 
-export const getDailyPeriodsFromFirestore = async (complexName: string, academicYear: string): Promise<TimetableDailyPeriodsRecord | null> => {
+export const getDailyPeriodsFromFirestore = async (complexName: string, academicYear: string, stage?: string): Promise<TimetableDailyPeriodsRecord | null> => {
   try {
-    const docId = `${complexName}_${academicYear}`.replace(/\//g, '-').replace(/\s+/g, '_');
+    const stagePart = stage ? `_${stage}` : '';
+    const docId = `${complexName}_${academicYear}${stagePart}`.replace(/\//g, '-').replace(/\s+/g, '_');
     const docRef = doc(db, 'timetable_daily_periods', docId);
     const snap = await getDoc(docRef);
     if (snap.exists()) {
@@ -494,6 +497,72 @@ export const getSubjectQuotaFromFirestore = async (
     return null;
   }
 };
+
+export const saveDailyTeacherRowsToFirestore = async (
+  key: string,
+  rows: any[]
+): Promise<any> => {
+  try {
+    const cleanKey = key.replace(/\//g, '-').replace(/\s+/g, '_');
+    const docRef = doc(db, 'daily_teacher_periods', cleanKey);
+    await setDoc(docRef, sanitizeForFirestore({
+      rows,
+      updatedAt: new Date().toISOString()
+    }), { merge: true });
+    return { success: true };
+  } catch (e) {
+    console.warn('Error saving daily teacher rows to firestore:', e);
+    return { success: false };
+  }
+};
+
+export const getDailyTeacherRowsFromFirestore = async (
+  key: string
+): Promise<any[] | null> => {
+  try {
+    const cleanKey = key.replace(/\//g, '-').replace(/\s+/g, '_');
+    const docRef = doc(db, 'daily_teacher_periods', cleanKey);
+    const snap = await getDoc(docRef);
+    if (snap.exists() && Array.isArray(snap.data()?.rows)) {
+      return snap.data()?.rows;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+};
+
+export const getAllStaffTeachers = async (complexName?: string): Promise<TeacherRecord[]> => {
+  let localList: TeacherRecord[] = [];
+  try {
+    const raw = localStorage.getItem('registered_teachers_fresh_v1');
+    if (raw) localList = JSON.parse(raw);
+  } catch {}
+
+  try {
+    const fsList = await getTeachersFromFirestore();
+    const map = new Map<string, TeacherRecord>();
+    localList.forEach(t => {
+      const key = (t.jobNum ? String(t.jobNum).trim() : '') || (t.name ? String(t.name).trim() : '');
+      if (key) map.set(key, t);
+    });
+    fsList.forEach(t => {
+      const key = (t.jobNum ? String(t.jobNum).trim() : '') || (t.name ? String(t.name).trim() : '');
+      if (key) map.set(key, { ...t, id: t.id });
+    });
+    const merged = Array.from(map.values());
+    if (!complexName || complexName === 'كل المجمعات') {
+      return merged;
+    }
+    return merged.filter(t => !t.complexName || t.complexName === complexName || (complexName === 'دار القلم' && !t.complexName));
+  } catch (err) {
+    if (!complexName || complexName === 'كل المجمعات') {
+      return localList;
+    }
+    return localList.filter(t => !t.complexName || t.complexName === complexName || (complexName === 'دار القلم' && !t.complexName));
+  }
+};
+
 
 
 

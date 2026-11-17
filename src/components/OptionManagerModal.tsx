@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, Trash2, Check, AlertCircle, Settings, Edit3, Search } from 'lucide-react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 export interface OptionManagerModalProps {
   isOpen: boolean;
@@ -22,6 +24,8 @@ export const OptionManagerModal: React.FC<OptionManagerModalProps> = ({
   onEditOption,
   accentColor = 'blue'
 }) => {
+  useBodyScrollLock(isOpen);
+
   const [newOptionText, setNewOptionText] = useState('');
   const [searchFilter, setSearchFilter] = useState('');
   const [editingOption, setEditingOption] = useState<string | null>(null);
@@ -163,15 +167,17 @@ export const OptionManagerModal: React.FC<OptionManagerModalProps> = ({
     ? options.filter(opt => opt.toLowerCase().includes(searchFilter.trim().toLowerCase()))
     : options;
 
-  return (
+  if (!isOpen) return null;
+
+  const modalContent = (
     <div 
-      className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150 overscroll-contain"
       dir="rtl"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150 text-slate-800">
+      <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150 text-slate-800 overscroll-contain">
         
         {/* رأس النافذة */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -259,7 +265,7 @@ export const OptionManagerModal: React.FC<OptionManagerModalProps> = ({
         )}
 
         {/* قائمة الخيارات الحالية مع إمكانية التعديل والحذف */}
-        <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+        <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1 overscroll-contain custom-scrollbar">
           <div className="text-[11px] font-bold text-slate-500 mb-1 px-1 flex justify-between items-center">
             <span>الخيارات الحالية:</span>
             <span>اضغط القلم للتعديل أو السلة للحذف</span>
@@ -346,4 +352,6 @@ export const OptionManagerModal: React.FC<OptionManagerModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };
